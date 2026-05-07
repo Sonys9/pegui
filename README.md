@@ -15,15 +15,15 @@
   </ul>
   <h1>Quick start!</h1>
 <pre><code class="language-rust">
-  use embedded_graphics::{mono_font::{MonoTextStyle, ascii::FONT_6X10}, pixelcolor::BinaryColor};
-  use linux_embedded_hal::I2cdev;
-  use log::{error, info};
-  use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
-  use rppal::gpio::Gpio;
-  use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, ui::Ui};
+use embedded_graphics::{mono_font::{MonoTextStyle, ascii::FONT_6X10}, pixelcolor::BinaryColor};
+use linux_embedded_hal::I2cdev;
+use log::{error, info};
+use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
+use rppal::gpio::Gpio;
+use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, ui::Ui};
  
- #[tokio::main]
- async fn main() {
+#[tokio::main]
+async fn main() {
      let i2c_interface = "/dev/i2c-1".to_string();
      let i2c = I2cdev::new(i2c_interface).expect("Failed to open I2C! Please enable I2C and connect the screen if you did not");
      let interface = I2CDisplayInterface::new(i2c);
@@ -51,13 +51,13 @@
          buttons,
          app_state
      ).await.start_rendering().await;
- }
+}
  
- struct AppState {
+struct AppState {
      counter: u32
- }
+}
  
- impl App for AppState {
+impl App for AppState {
      async fn update(&mut self, ui: &mut Ui, buttons: Buttons) {
          info!("Buttons state: {:?}", buttons);
          ui.label(format!("Clicks: {}", self.counter), "default").ok();
@@ -65,7 +65,7 @@
              self.counter += 1;
          }
      }
- }
+}
 </code></pre>
   <h1>Todo</h1>
   <ul>
