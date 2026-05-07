@@ -7,17 +7,18 @@
   <ul>
     <li>✨ It uses tokio so it fully asynchronous and eats small amount of memory</li>
     <li>🌧 Very simple app compiled with musl mode (binary includes every dependency so it will work on every system) only takes <b>1.2</b> megabytes!</li>
-    <li>This list will be bigger in the future</li>
+    <li>📋 This list will be bigger in the future</li>
   </ul>
   <h1>Todo</h1>
   <ul>
-    <li>Add different objects support</li>
-    <li>Add flexbox-like and grid-like something</li>
-    <li>Add bitmap "videos" and just images support</li>
-    <li>Add touchscreen support</li>
-    <s><li>Become a millionaire</li></s>
-    <li>This list will also be bigger in the future</li>
+    <li>🧊 Add different objects support</li>
+    <li>💃 Add flexbox-like and grid-like something</li>
+    <li>♟  Add bitmap "videos" and just images support</li>
+    <li>📱 Add touchscreen support</li>
+    <li>💾 Add more drivers</li>
+    <s><li>❌ Become a millionaire</li></s>
+    <li>📋 This list will also be bigger in the future</li>
   </ul>
-  <h1>Enjoy the library!</h1>
-  <p>Please contribute if you can!</p>
+  <h1>😅 Enjoy the library!</h1>
+  <p>🙏 Please contribute if you can!</p>
 </body>
