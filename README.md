@@ -1,5 +1,9 @@
 <!DOCTYPE HTML>
 <body>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  
   <h1>Pegui</h1>
   <p>⚡️ It's an IMGUI-like library which allows developers write beautiful code ⚡️</p>
   <i>🛠 Currently it's in developing 🛠</i>
@@ -10,8 +14,7 @@
     <li>📋 This list will be bigger in the future</li>
   </ul>
   <h1>Quick start!</h1>
-  <code>
-  use std::env;
+<pre><code class="language-rust">
   use embedded_graphics::{mono_font::{MonoTextStyle, ascii::FONT_6X10}, pixelcolor::BinaryColor};
   use linux_embedded_hal::I2cdev;
   use log::{error, info};
@@ -21,7 +24,7 @@
  
  #[tokio::main]
  async fn main() {
-     # let i2c_interface = "/dev/i2c-1".to_string();
+     let i2c_interface = "/dev/i2c-1".to_string();
      let i2c = I2cdev::new(i2c_interface).expect("Failed to open I2C! Please enable I2C and connect the screen if you did not");
      let interface = I2CDisplayInterface::new(i2c);
      let mut display = Ssd1306::new(
@@ -63,7 +66,7 @@
          }
      }
  }
-  </code>
+</code></pre>
   <h1>Todo</h1>
   <ul>
     <li>🧊 Add different objects support</li>
