@@ -67,13 +67,13 @@ impl App for AppState {
 ```
 
 ## Todo
-🧊 Add different objects support
-💃 Add flexbox-like and grid-like something
-♟ Add bitmap "videos" and just images support
-📱 Add touchscreen support
-💾 Add more drivers
-❌ Become a millionaire
-📋 This list will also be bigger in the future
+- 🧊 Add different objects support
+- 💃 Add flexbox-like and grid-like something
+- ♟ Add bitmap "videos" and just images support
+- 📱 Add touchscreen support
+- 💾 Add more drivers
+- ~❌ Become a millionaire~
+- 📋 This list will also be bigger in the future
 
 ## 😅 Enjoy the library!
 🙏 Please contribute if you can!
