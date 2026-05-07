@@ -69,7 +69,7 @@ impl App for AppState {
 ## Todo
 - 🧊 Add different objects support
 - 💃 Add flexbox-like and grid-like something
-- ♟ Add bitmap "videos" and just images support
+- ♟  Add bitmap "videos" and just images support
 - 📱 Add touchscreen support
 - 💾 Add more drivers
 - ~❌ Become a millionaire~
