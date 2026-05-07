@@ -1,8 +1,13 @@
 #![warn(missing_docs)]
-//! Pi Easy GUI (Pegui)
+//! # Pi Easy GUI (Pegui)
+//! 
 //! It's a simple GUI library for screens working on popular drivers like Ssd1306
+//! 
 //! It also support GPIO buttons but doesn't support touchscreen
-//! Currently supported drivers: Ssd1306
+//! 
+//! # Currently supported drivers
+//! 
+//! Ssd1306
 //! 
 //! ## Quick start
 //! 
@@ -14,7 +19,6 @@
 //! # use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
 //! # use rppal::gpio::Gpio;
 //! # use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, ui::Ui};
-//! 
 //! #[tokio::main]
 //! async fn main() {
 //!     # let i2c_interface = "/dev/i2c-1".to_string();
@@ -79,12 +83,19 @@ use crate::errors::Error;
 pub use crate::ui::Ui;
 
 /// A structure used for creating a text
+/// 
 /// Arguments:
+/// 
 ///  - `text` - String
+/// 
 ///  - `position` - Point from `embedded_graphics_core::geometry::point`: struct `{ x: i32, y: i32 }`,
+/// 
 ///  - `alignment` - Alignment from `embedded_graphics::text::Alignment`: enum `{ Left, Center, Right }`, works like CSS alignment,
+/// 
 ///  - `font` - MonoTextStyle font from `embedded_graphics::mono_font::mono_text_style`, currently only supports BinaryColor
+/// 
 /// # Example
+/// 
 /// `Text { text: "Hello, world!".to_string(), position: Point { x: 10, y: 10 }, alignment: Alignment::Left, font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On) }`
 #[derive(Debug)]
 pub struct Text {
@@ -133,21 +144,31 @@ pub struct Colors {
 /// Settings for an Engine
 pub struct Settings<D: DisplayDevice> {
     /// Colors (struct Colors)
+    /// 
     /// # Example 
+    /// 
     /// `Colors { main: BinaryColor::On, secondary: BinaryColor::off }`
     pub colors: Colors,
     /// Display
+    /// 
     /// # Example 
+    /// 
     /// `Ssd1306Display { Ssd1306::new(...blablabla...).into_buffered_graphics_mode() }`
     pub display: D,
     /// Framerate
+    /// 
     /// # Example 
+    /// 
     /// `20`
+    /// 
     /// For fps bigger than 5 you have to increase I2C bitrate and your display chip should support fast i2c
     pub fps: u8,
     /// Fonts
+    /// 
     /// # Example 
+    /// 
     /// `vec![ Font { font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On), tag: "default" } ]`
+    /// 
     /// You will able to use them by using a tag
     pub fonts: Vec<Font>
 }
@@ -166,13 +187,19 @@ pub struct Engine<A: App> {
 #[derive(Debug, Clone, Copy)]
 pub struct Font {
     /// Font
+    /// 
     /// # Example 
+    /// 
     /// MonoTextStyle::new(&FONT_6X10, BinaryColor::On)
     pub font: MonoTextStyle<'static, BinaryColor>,
     /// Font tag
+    /// 
     /// You should use it to find the font and use it
+    /// 
     /// # Example how it works
+    /// 
     /// `ui.label(format!("Clicks: {}", self.counter), "default").ok()`
+    /// 
     /// Where `default` is a tag
     pub tag: &'static str
 }
@@ -180,12 +207,15 @@ pub struct Font {
 /// App trait
 pub trait App {
     /// App update function
+    /// 
     /// Asynchronous!!!
     fn update(&mut self, ui: &mut Ui, buttons: Buttons) -> impl std::future::Future<Output = ()> + Send;
 }
 
 impl<A: App> Engine<A> {
     /// Creates new Engine
+    /// 
+    /// You should provide settings, buttons and an app state
     pub async fn new<D: DisplayDevice + std::marker::Send + 'static>(mut settings: Settings<D>, buttons: Vec<ButtonTag>, app: A) -> Self 
     where D: DrawTarget<Color = BinaryColor> {
         let bounding_box = settings.display.bounding_box();
@@ -228,6 +258,7 @@ impl<A: App> Engine<A> {
     }
 
     /// Starts a loop which calls update every `1000 / fps`
+    /// 
     /// It also clears the screen and flushes it
     pub async fn start_rendering(&mut self) {
         let delay = Duration::from_millis(1000 / self.fps as u64);

@@ -15,12 +15,14 @@ impl Ui {
     }
 
     /// Used to draw a text from scratch
+    /// 
     /// Text example: `{ text: String, position: embedded_graphics::geometry::Point, alignment: embedded_graphics::text::Alignment, font: embedded_graphics::mono_font::MonoTextStyle<'static, BinaryColor> }`
     pub fn text(&mut self, text: Text) {
         self.tx.send(Message { tx: None, command: Command::DrawObject(Object::Text(text)) }).ok();
     }
 
     /// Used to easily draw a text
+    /// 
     /// Example: `ui.label("Hello, world!".to_string(), "default_font").ok()`
     pub fn label(&mut self, text: String, font_tag: &str) -> Result<(), Error> {
         let position = self.bounding_box.top_left + Point::new(0, 10);

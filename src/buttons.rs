@@ -5,7 +5,9 @@ pub struct ButtonTag {
     /// Tag, `&'static str`
     pub tag: &'static str,
     /// Pin, `InputPin` from `rppal::gpio::InputPin`
+    /// 
     /// Example to get it: `gpio.get(17).unwrap().into_input_pullup()`
+    /// 
     /// Always call .into_input_pullup() so it will work!
     pub pin: InputPin
 }
@@ -27,7 +29,9 @@ pub struct Button {
 #[derive(Debug, Clone)]
 pub struct Buttons {
     /// A vector with buttons
+    /// 
     /// # Example
+    /// 
     /// `{ tag: &'static str, pin: u8, holded: bool, clicked: bool }`
     pub buttons: Vec<Button>
 }
