@@ -12,6 +12,13 @@ ssd1306 = "0.10.0"
 thiserror = "2.0.18"
 tokio = { version = "1.52.1", features = ["full"] }
 
+[workspace]
+members = [
+    ".",
+    "examples/empty_app",
+    "examples/label"
+]
+
 [profile.release]
 opt-level = 's'
 lto = "fat"
