@@ -29,7 +29,7 @@ pub struct Button {
 }
 
 /// Buttons
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Buttons {
     /// A vector with buttons
     ///
@@ -47,17 +47,10 @@ pub struct Buttons {
 }
 
 impl Buttons {
-    /// Returns Buttons structure where `buttons` is empty vector (`Vec::new()`)
-    pub fn default() -> Self {
-        Self {
-            buttons: Vec::new(),
-        }
-    }
-
     /// Zero copy cool method to copy the buttons
     pub fn copy(&self) -> Self {
         Self {
-            buttons: self.buttons.iter().map(|button| *button).collect(),
+            buttons: self.buttons.to_vec(),
         }
     }
 

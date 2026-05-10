@@ -308,14 +308,13 @@ impl<A: App> Engine<A> {
     /// Creates new Engine
     ///
     /// You should provide settings, buttons and an app state
-    pub async fn new<D: DisplayDevice + std::marker::Send + 'static>(
+    pub async fn new<
+        D: DisplayDevice + DrawTarget<Color = BinaryColor> + std::marker::Send + 'static,
+    >(
         mut settings: Settings<D>,
         buttons: Vec<ButtonTag>,
         app: A,
-    ) -> Self
-    where
-        D: DrawTarget<Color = BinaryColor>,
-    {
+    ) -> Self {
         let bounding_box = settings.display.bounding_box();
         let is_monochrome = settings.display.is_monochrome();
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
@@ -379,7 +378,7 @@ impl<A: App> Engine<A> {
         });
 
         Self {
-            tx: tx,
+            tx,
             app,
             delay,
             colors: settings.colors,
@@ -388,14 +387,14 @@ impl<A: App> Engine<A> {
             display: Display {
                 size: bounding_box.size,
                 bounding_box,
-                is_monochrome: is_monochrome,
+                is_monochrome,
                 framerate: settings.framerate,
             },
         }
     }
 
     #[allow(dead_code)]
-    fn send_response<'a>(sender: Option<oneshot::Sender<Command>>, message: Command) {
+    fn send_response(sender: Option<oneshot::Sender<Command>>, message: Command) {
         if let Some(sender) = sender {
             debug!("Sending {:?}", message);
             sender.send(message).ok();

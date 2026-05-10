@@ -75,10 +75,10 @@ impl Ui {
             .send(Message {
                 tx: None,
                 command: Command::DrawObject(Object::Text(Text {
-                    text: text,
-                    position: position,
+                    text,
+                    position,
                     alignment: Alignment::Left,
-                    font: font,
+                    font,
                 })),
             })
             .await
