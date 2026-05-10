@@ -42,7 +42,7 @@
 //!         Settings {
 //!             colors: Colors { main: BinaryColor::On, secondary: BinaryColor::Off },
 //!             display: Ssd1306Display { display },
-//!             fps: 20,
+//!             framerate: 20,
 //!             fonts: vec![ Font::new("default", MonoTextStyle::new(&FONT_6X10, BinaryColor::On)) ]
 //!         },
 //!         buttons,
