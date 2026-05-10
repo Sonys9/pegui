@@ -56,9 +56,9 @@ struct AppState {
 } // Our app state
 
 impl App for AppState {
-    async fn update(&mut self, ui: &mut Ui, buttons: Buttons) { // Library calls this function every 1000 / fps milliseconds 
+    async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) { // Library calls this function every 1000 / fps milliseconds 
         info!("Buttons state: {:?}", buttons);
-        ui.label(format!("Clicks: {}", self.counter), "default").ok(); // Creating a label with text
+        ui.label(format!("Clicks: {}", self.counter), "default").await.ok(); // Creating a label with text
         if buttons.clicked("fourth button") { // Checking if the 4th button was clicked
             self.counter += 1;
         }
@@ -74,7 +74,7 @@ To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × 
 
 `400.000` ÷ (`128` × `64` × `2`) = `400.000` ÷ `16384` ~= `24,41 fps` ~= `24 fps`
 
-If you see these warnings (you have to initialize the logger first): `Update took too much! (`some number` ms)`, you should a little decrease fps until warnings gone or just use this formula: `1000` ÷ `number from warning` - `4` where `4` is safety stock
+If you see these warnings (you have to initialize the logger first): `Update took too much! (some number ms)`, you should a little decrease fps until warnings gone or just use this formula: `1000` ÷ `number from warning` - `4` where `4` is safety stock
 
 # Todo
 - 🧊 Add different objects support

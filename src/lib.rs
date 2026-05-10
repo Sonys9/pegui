@@ -169,7 +169,7 @@ pub struct Settings<D: DisplayDevice> {
     /// 
     /// `400.000` ÷ (`128` × `64` × `2`) = `400.000` ÷ `16384` ~= `24,41 fps` ~= `24 fps`
     /// 
-    /// If you see these warnings (you have to initialize the logger first): `Update took too much! (`some number` ms)`, you should a little decrease fps until warnings gone or just use this formula: `1000` ÷ `number from warning`
+    /// If you see these warnings (you have to initialize the logger first): `Update took too much! (some number ms)`, you should a little decrease fps until warnings gone or just use this formula: `1000` ÷ `number from warning`
     pub fps: u8,
     /// Fonts
     /// 
