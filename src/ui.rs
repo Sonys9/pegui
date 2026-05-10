@@ -43,17 +43,18 @@ impl Ui {
 
     /// Used to draw a rectangle from scratch
     /// 
-    /// Example: ```rust,norun
+    /// Example:
+    /// ```ignore
     /// let style = PrimitiveStyleBuilder::new()
     ///     .stroke_color(BinaryColor::On)
     ///     .stroke_width(3)
     ///     .fill_color(BinaryColor::Off)
-    ///     .build();
+    ///     .build(); // Create a style for the rectangle using embedded_graphics
     /// 
     /// let rectangle = Rectangle::new(Point::new(30, 20), Size::new(10, 15))
-    ///     .into_styled(style);
+    ///     .into_styled(style); // Create the rectangle using embedded_graphics
     /// 
-    /// ui.rectangle(rectangle).await.ok();
+    /// ui.rectangle(rectangle).await.ok(); // Send it to UI
     /// ```
     pub async fn rectangle(&mut self, rectangle: Styled<Rectangle, PrimitiveStyle<BinaryColor>>) -> Result<(), Error> {
         self.tx.send(Message { tx: None, command: Command::DrawObject(Object::Rectangle(rectangle))}).await
