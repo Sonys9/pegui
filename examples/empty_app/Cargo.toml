@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 embedded-graphics = "0.8.2"
 linux-embedded-hal = "0.4.1"
-pegui = { path = "../" } # change the path to the folder with the library
+pegui = { path = "../../" } # change the path to the folder with the library
 rppal = "0.22.1"
 ssd1306 = "0.10.0"
 tokio = { version = "1.52.2", features = ["full"] }
