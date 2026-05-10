@@ -36,18 +36,18 @@ pub struct Buttons {
     /// # Example
     ///
     /// ```ignore
-    /// {
-    ///     tag: &'static str,
-    ///     pin: u8,
-    ///     holded: bool,
-    ///     clicked: bool
+    /// Buttons {
+    ///     tag: "default",
+    ///     pin: 17,
+    ///     holded: false,
+    ///     clicked: false
     /// }
     /// ```
     pub buttons: Vec<Button>,
 }
 
 impl Buttons {
-    /// Zero copy cool method to copy the buttons
+    /// Copies the structure
     pub fn copy(&self) -> Self {
         Self {
             buttons: self.buttons.to_vec(),

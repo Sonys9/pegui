@@ -7,7 +7,9 @@ pub struct Font {
     ///
     /// # Example
     ///
+    /// ```ignore
     /// MonoTextStyle::new(&FONT_6X10, BinaryColor::On)
+    /// ```
     pub font: MonoTextStyle<'static, BinaryColor>,
     /// Font tag
     ///
