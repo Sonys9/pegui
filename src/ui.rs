@@ -1,20 +1,32 @@
-use embedded_graphics::{geometry::Point, pixelcolor::BinaryColor, primitives::{PrimitiveStyle, Rectangle, Styled}, text::Alignment};
-use crate::{Command, Display, Font, Message, Object, Text, errors::Error};
+use std::collections::HashMap;
+use embedded_graphics::{geometry::Point, mono_font::MonoTextStyle, pixelcolor::BinaryColor, primitives::{PrimitiveStyle, Rectangle, Styled}, text::Alignment};
+use crate::{Command, Display, Message, Object, Text, errors::Error};
 use tokio::sync::mpsc::Sender;
 
 /// UI struct, used to draw objects
 pub struct Ui {
     pub(crate) tx: Sender<Message>,
-    pub bounding_box: Rectangle,
-    pub fonts: Vec<Font>,
+    /// Fonts as hashmap
+    /// 
+    /// You can find needed font like this:
+    /// 
+    /// # Example
+    /// 
+    /// ```ignore
+    /// if Some(font) = fonts.get("my_very_cool_font") {
+    ///     // here you do something
+    /// } else {
+    ///     // happens if the tag is wrong
+    /// };
+    /// ```
+    pub fonts: HashMap<&'static str, MonoTextStyle<'static, BinaryColor>>,
+    /// Display info
+    /// 
+    /// Uses Display structure
     pub display: Display
 }
 
 impl Ui {
-    //pub(crate) fn new(ui: Ui) -> Self {
-    //    Self { tx: ui.tx, bounding_box: ui.bounding_box, fonts: ui.fonts, display: ui.display }
-    //}
-
     /// Used to draw a text from scratch
     /// 
     /// # Text example
@@ -39,18 +51,13 @@ impl Ui {
     /// ui.label("Hello, world!".to_string(), "default_font").ok()
     /// ```
     pub async fn label(&mut self, text: String, font_tag: &str) -> Result<(), Error> {
-        let position = self.bounding_box.top_left + Point::new(0, 10);
-        let Some(font) = self.fonts.iter().find(|font| font.tag == font_tag).cloned() else {
+        let position = self.display.bounding_box.top_left + Point::new(0, 10);
+        let Some(&font) = self.fonts.get(font_tag) else {
             return Err(Error::FailedToGet(format!("Failed to get the font by it's tag: {}", font_tag)));
         };
-        self.tx.send(Message { tx: None, command: Command::DrawObject(Object::Text(Text { text: text, position: position, alignment: Alignment::Left, font: font.font }))}).await
+        self.tx.send(Message { tx: None, command: Command::DrawObject(Object::Text(Text { text: text, position: position, alignment: Alignment::Left, font: font }))}).await
             .map_err(|e| Error::SendError(format!("Failed to send the text to other thread: {}", e)))?;
         Ok(())
-    }
-
-    /// Used to get a bounding box as a embedded_graphics::primitives::Rectangle
-    pub fn bounding_box(&mut self) -> Rectangle {
-        self.bounding_box
     }
 
     /// Used to draw a rectangle from scratch

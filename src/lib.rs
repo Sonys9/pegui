@@ -65,7 +65,7 @@
 //! }
 //! ```
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::Mutex, time::{Duration, Instant, sleep}};
 use embedded_graphics::{Drawable, mono_font::MonoTextStyle, pixelcolor::BinaryColor, prelude::{DrawTarget, Point}, primitives::{Circle, Primitive, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, Styled, StyledDrawable, Triangle}, text::{self, Alignment}};
 use log::{error, debug, warn};
@@ -78,10 +78,13 @@ pub mod display_device;
 pub mod buttons;
 /// This module is used for errors
 pub mod errors;
+/// This module is used for fonts
+pub mod fonts;
 pub use crate::buttons::{Button, ButtonTag, Buttons};
 pub use crate::display_device::{DisplayDevice, Ssd1306Display};
-use crate::errors::Error;
 pub use crate::ui::Ui;
+pub use crate::fonts::Font;
+use crate::errors::Error;
 
 /// A structure used for creating a text
 /// 
@@ -138,11 +141,54 @@ struct Message {
     command: Command
 }
 
+/// Display info
+/// 
+/// # Example
+/// 
+/// ```ignore
+/// Display {
+///     width: 128,
+///     height: 64,
+///     bounding_box: embedded_graphics::primitives::Rectangle {
+///         top_left: embedded_graphics::geometry::Point {
+///             x: 0,
+///             y: 0
+///         },
+///         size: embedded_graphics::geometry::Size {
+///             width: 128,
+///             height: 64
+///         }
+///     },
+///     is_monochrome: true, // if it only supports 2 colors like black and white or blue and yellow
+///     framerate: 20 // frames per second (or just FPS)
+/// }
+/// ```
 #[derive(Clone, Copy, Debug)]
-struct Display {
+pub struct Display {
+    /// Display width
     pub width: u32,
+    /// Display height
     pub height: u32,
+    /// Bounding box
+    /// 
+    /// # Example
+    /// 
+    /// ```ignore
+    /// embedded_graphics::primitives::Rectangle {
+    ///     top_left: embedded_graphics::geometry::Point {
+    ///         x: 0,
+    ///         y: 0
+    ///     },
+    ///     size: embedded_graphics::geometry::Size {
+    ///         width: 128,
+    ///         height: 64
+    ///     }
+    /// }
+    /// ```
+    pub bounding_box: Rectangle,
+    /// Tells you if the screen is monochrome
     pub is_monochrome: bool,
+    /// Framerate
     pub framerate: u8
 }
 
@@ -178,22 +224,22 @@ pub struct Settings<D: DisplayDevice> {
     /// }
     /// ```
     pub display: D,
-    /// Framerate
+    /// Framerate (FPS)
     /// 
     /// # Example 
     /// 
     /// `20`
     /// 
-    /// # How to get max possible fps
+    /// # How to get max possible framerate
     /// 
-    /// To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 2)` where `2` are some header bytes and some delays
+    /// To get max possible framerate you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 2)` where `2` are some header bytes and some delays
     /// 
     /// # Formula example
     /// 
     /// `400.000` ÷ (`128` × `64` × `2`) = `400.000` ÷ `16384` ~= `24,41 fps` ~= `24 fps`
     /// 
-    /// If you see these warnings (you have to initialize the logger first): `Update took too much! (some number ms)`, you should a little decrease fps until warnings gone or just use this formula: `1000` ÷ `number from warning`
-    pub fps: u8,
+    /// If you see these warnings (you have to initialize the logger first): `Update took too much! (some number ms)`, you should a little decrease your framerate until warnings gone or just use this formula: `1000` ÷ `number from warning`
+    pub framerate: u8,
     /// Fonts
     /// 
     /// # Example 
@@ -219,31 +265,9 @@ pub struct Engine<A: App> {
     app: A,
     colors: Colors,
     bounding_box: Rectangle,
-    fonts: Vec<Font>,
-    buttons: Arc<Mutex<Arc<Buttons>>>
-}
-
-/// A font used for text
-#[derive(Debug, Clone, Copy)]
-pub struct Font {
-    /// Font
-    /// 
-    /// # Example 
-    /// 
-    /// MonoTextStyle::new(&FONT_6X10, BinaryColor::On)
-    pub font: MonoTextStyle<'static, BinaryColor>,
-    /// Font tag
-    /// 
-    /// You should use it to find the font and use it
-    /// 
-    /// # Example how it works
-    /// 
-    /// ```ignore
-    /// ui.label(format!("Clicks: {}", self.counter), "default").ok()
-    /// ```
-    /// 
-    /// Where `default` is a tag
-    pub tag: &'static str
+    fonts: HashMap<&'static str, MonoTextStyle<'static, BinaryColor>>,
+    buttons: Arc<Mutex<Arc<Buttons>>>,
+    framerate: u8
 }
 
 /// App trait
@@ -261,7 +285,7 @@ impl<A: App> Engine<A> {
     pub async fn new<D: DisplayDevice + std::marker::Send + 'static>(mut settings: Settings<D>, buttons: Vec<ButtonTag>, app: A) -> Self 
     where D: DrawTarget<Color = BinaryColor> {
         let bounding_box = settings.display.bounding_box();
-        let delay = Duration::from_millis(1000 / settings.fps as u64);
+        let delay = Duration::from_millis(1000 / settings.framerate as u64);
         let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
         let draw_object = move |object: Object, display: &mut D| {
             match object {
@@ -270,12 +294,7 @@ impl<A: App> Engine<A> {
                 _ => {}
             };
         };
-        fn send_response<'a>(sender: Option<oneshot::Sender<Command>>, message: Command) {
-            if let Some(sender) = sender {
-                debug!("Sending {:?}", message);
-                sender.send(message).ok();
-            };
-        }
+        
 
         let (tx, mut rx) = mpsc::channel::<Message>(3);
         tokio::spawn(async move {
@@ -306,7 +325,26 @@ impl<A: App> Engine<A> {
             }}
         );
 
-        Self { tx: tx, app, delay, colors: settings.colors, bounding_box: bounding_box, fonts: settings.fonts, buttons: shared_buttons_state }
+        Self { 
+            tx: tx, 
+            app, delay, 
+            colors: settings.colors, 
+            bounding_box: bounding_box, 
+            fonts: Self::vec_to_hashmap(settings.fonts), 
+            buttons: shared_buttons_state, 
+            framerate: settings.framerate 
+        }
+    }
+
+    fn send_response<'a>(sender: Option<oneshot::Sender<Command>>, message: Command) {
+        if let Some(sender) = sender {
+            debug!("Sending {:?}", message);
+            sender.send(message).ok();
+        };
+    }
+
+    fn vec_to_hashmap(fonts: Vec<Font>) -> HashMap<&'static str, MonoTextStyle<'static, BinaryColor>> {
+        fonts.into_iter().map(|font| (font.tag, font.font)).collect()
     }
 
     /// Starts a loop which calls update every `1000 / fps`
@@ -315,9 +353,14 @@ impl<A: App> Engine<A> {
     pub async fn start_rendering(&mut self) {
         let mut ui = Ui { 
             tx: self.tx.clone(), 
-            bounding_box: self.bounding_box, 
             fonts: self.fonts.clone(),
-            display: Display { width: 0, height: 0, is_monochrome: false, framerate: 1 }
+            display: Display { 
+                width: self.bounding_box.columns().end as u32, 
+                height: self.bounding_box.rows().end as u32, 
+                is_monochrome: true, 
+                framerate: self.framerate, 
+                bounding_box: self.bounding_box 
+            }
         };
         let mut last_buttons_state: Option<Buttons> = None;
         loop {
