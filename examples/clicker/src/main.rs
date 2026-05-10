@@ -1,15 +1,12 @@
 use embedded_graphics::{
-    geometry::{Point, Size},
     mono_font::{MonoTextStyle, ascii::FONT_6X10},
     pixelcolor::BinaryColor,
-    primitives::{Primitive, PrimitiveStyleBuilder, Rectangle},
 };
 use linux_embedded_hal::I2cdev;
-use log::{error, info};
+use log::error;
 use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, Ui};
 use rppal::gpio::Gpio;
 use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
-use std::env;
 
 #[tokio::main]
 async fn main() {

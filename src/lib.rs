@@ -71,13 +71,10 @@ use embedded_graphics::{
     mono_font::MonoTextStyle,
     pixelcolor::BinaryColor,
     prelude::{DrawTarget, Point},
-    primitives::{
-        Circle, Primitive, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, Styled,
-        StyledDrawable, Triangle,
-    },
+    primitives::{Circle, PrimitiveStyle, Rectangle, Styled, Triangle},
     text::{self, Alignment},
 };
-use log::{debug, error, warn};
+use log::{debug, warn};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{
     mpsc::{self, Sender},
@@ -99,7 +96,7 @@ pub mod fonts;
 pub mod ui;
 pub use crate::buttons::{Button, ButtonTag, Buttons};
 pub use crate::display_device::{DisplayDevice, Ssd1306Display};
-use crate::errors::Error;
+// use crate::errors::Error;
 pub use crate::fonts::Font;
 pub use crate::ui::Ui;
 
@@ -137,6 +134,7 @@ pub struct Text {
     pub font: MonoTextStyle<'static, BinaryColor>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 enum Object {
     Rectangle(Styled<Rectangle, PrimitiveStyle<BinaryColor>>),
@@ -152,6 +150,7 @@ enum Command {
     Clear(BinaryColor),
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct Message {
     tx: Option<oneshot::Sender<Command>>,
@@ -352,7 +351,6 @@ impl<A: App> Engine<A> {
                     Command::Clear(color) => {
                         settings.display.clear(color).ok();
                     }
-                    _ => {}
                 }
             }
         });
@@ -396,6 +394,7 @@ impl<A: App> Engine<A> {
         }
     }
 
+    #[allow(dead_code)]
     fn send_response<'a>(sender: Option<oneshot::Sender<Command>>, message: Command) {
         if let Some(sender) = sender {
             debug!("Sending {:?}", message);
