@@ -25,8 +25,7 @@ use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Disp
 
 #[tokio::main] // The library is asynchronous
 async fn main() {
-    let i2c_interface = "/dev/i2c-1".to_string();
-    let i2c = I2cdev::new(i2c_interface).expect("Failed to open I2C! Please enable I2C and connect the screen if you did not");
+    let i2c = I2cdev::new("/dev/i2c-1").expect("Failed to open I2C! Please enable I2C and connect the screen if you did not");
     let interface = I2CDisplayInterface::new(i2c); // Creating the I2C connection
     let mut display = Ssd1306::new(
         interface,
