@@ -9,7 +9,7 @@
 # Why?
 
 - ✨ Built on tokio, so it eats small amount of memory, runs blazing fast and just cool
-- 🌧 Very simple app compiled with musl mode and compiled using `cross build --release --target aarch64-unknown-linux-musl` only takes **1.22** megabytes! 
+- 🌧 Very simple app compiled with musl mode and compiled using `cross build --release --target aarch64-unknown-linux-musl` and optimizations in cargo.toml only takes **598.1** kilobytes (**1.22** megabytes without them)! 
 - 🔄 Very easy to use
 - 📋 This list will be bigger in the future
 
