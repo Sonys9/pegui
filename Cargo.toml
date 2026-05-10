@@ -15,8 +15,8 @@ tokio = { version = "1.52.1", features = ["full"] }
 [workspace]
 members = [
     ".",
-    "../examples/empty_app",
-    "../examples/label"
+    "examples/empty_app",
+    "examples/label"
 ]
 
 [profile.release]
