@@ -1,5 +1,7 @@
 # Pegui
 
+(Raspberry) Pi Easy GUI
+
 ⚡️ An async-first, IMGUI-inspired GUI engine for embedded Linux. ⚡️
 
 *🛠 Currently it's in developing 🛠*
@@ -79,11 +81,15 @@ If you see these warnings (you have to initialize the logger first): `Update too
 
 # Todo
 - 🧊 Add different objects support
+- 🕹️ Add buttons with easy navigation using buttons
+- 🏷️ Update GPIO buttons tags for integrations with display buttons
 - 💃 Add flexbox-like and grid-like API
 - ♟  Add bitmap "videos" and just images support
 - 📱 Add touchscreen support
 - 💾 Add more drivers
 - 🦀 Switch to no_std for microcontrollers support and leaner work
+- 🌐 Add headless mode (via web interface)
+- 📸 Add screen recording
 - ~❌ Become a millionaire~
 - 📋 This list will also be bigger in the future
 

@@ -35,7 +35,8 @@ pub struct Ssd1306Display<T: ssd1306::prelude::DisplaySize> {
     /// 
     /// # Example
     /// ```ignore
-    /// Ssd1306::new(...blablabla...).into_buffered_graphics_mode()
+    /// Ssd1306::new(...blablabla...)
+    ///     .into_buffered_graphics_mode()
     /// ```
     pub display: Ssd1306<I2CInterface<I2cdev>, T, ssd1306::mode::BufferedGraphicsMode<T>>,
 }
@@ -46,11 +47,17 @@ pub trait DisplayDevice {
     type Error;
     /// Flushes (or updates) the screen
     fn flush(&mut self) -> Result<(), Self::Error>;
+    /// Shows if the display is monochrome
+    fn is_monochrome(&self) -> bool;
 }
 
 impl<T: ssd1306::prelude::DisplaySize> DisplayDevice for Ssd1306Display<T> {
     type Error = String;
     fn flush(&mut self) -> Result<(), Self::Error> {
         self.display.flush().map_err(|e| format!("{:?}", e))
+    }
+
+    fn is_monochrome(&self) -> bool { // it's always monochrome
+        true
     }
 }

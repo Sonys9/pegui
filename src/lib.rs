@@ -67,7 +67,7 @@
 
 use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::Mutex, time::{Duration, Instant, sleep}};
-use embedded_graphics::{Drawable, mono_font::MonoTextStyle, pixelcolor::BinaryColor, prelude::{DrawTarget, Point}, primitives::{Circle, Primitive, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, Styled, StyledDrawable, Triangle}, text::{self, Alignment}};
+use embedded_graphics::{Drawable, geometry::Size, mono_font::MonoTextStyle, pixelcolor::BinaryColor, prelude::{DrawTarget, Point}, primitives::{Circle, Primitive, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, Styled, StyledDrawable, Triangle}, text::{self, Alignment}};
 use log::{error, debug, warn};
 use tokio::sync::{mpsc::{self, Sender}, oneshot};
 /// An UI module used for creating elements on the screen
@@ -165,10 +165,17 @@ struct Message {
 /// ```
 #[derive(Clone, Copy, Debug)]
 pub struct Display {
-    /// Display width
-    pub width: u32,
-    /// Display height
-    pub height: u32,
+    /// Display size (a copy from bounding box)
+    /// 
+    /// # Example
+    /// 
+    /// ```ignore
+    /// embedded_graphics::geometry::Size {
+    ///     width: 128,
+    ///     height: 64
+    /// }
+    /// ```
+    pub size: Size,
     /// Bounding box
     /// 
     /// # Example
@@ -264,10 +271,9 @@ pub struct Engine<A: App> {
     delay: Duration,
     app: A,
     colors: Colors,
-    bounding_box: Rectangle,
     fonts: HashMap<&'static str, MonoTextStyle<'static, BinaryColor>>,
     buttons: Arc<Mutex<Arc<Buttons>>>,
-    framerate: u8
+    display: Display
 }
 
 /// App trait
@@ -285,6 +291,7 @@ impl<A: App> Engine<A> {
     pub async fn new<D: DisplayDevice + std::marker::Send + 'static>(mut settings: Settings<D>, buttons: Vec<ButtonTag>, app: A) -> Self 
     where D: DrawTarget<Color = BinaryColor> {
         let bounding_box = settings.display.bounding_box();
+        let is_monochrome = settings.display.is_monochrome();
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
         let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
         let draw_object = move |object: Object, display: &mut D| {
@@ -327,12 +334,17 @@ impl<A: App> Engine<A> {
 
         Self { 
             tx: tx, 
-            app, delay, 
+            app, 
+            delay, 
             colors: settings.colors, 
-            bounding_box: bounding_box, 
             fonts: Self::vec_to_hashmap(settings.fonts), 
             buttons: shared_buttons_state, 
-            framerate: settings.framerate 
+            display: Display { 
+                size: bounding_box.size,
+                bounding_box, 
+                is_monochrome: is_monochrome, 
+                framerate: settings.framerate
+            }
         }
     }
 
@@ -354,13 +366,7 @@ impl<A: App> Engine<A> {
         let mut ui = Ui { 
             tx: self.tx.clone(), 
             fonts: self.fonts.clone(),
-            display: Display { 
-                width: self.bounding_box.columns().end as u32, 
-                height: self.bounding_box.rows().end as u32, 
-                is_monochrome: true, 
-                framerate: self.framerate, 
-                bounding_box: self.bounding_box 
-            }
+            display: self.display
         };
         let mut last_buttons_state: Option<Buttons> = None;
         loop {
