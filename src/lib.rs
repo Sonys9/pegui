@@ -34,10 +34,10 @@
 //!     };
 //!     let app_state = AppState { counter: 0 };
 //!     let gpio = Gpio::new().expect("Failed to init GPIO");
-//!     let buttons = [(17, "fourth button"), (22, "third button"), (23, "second button"), (27, "first button")]
+//!     let buttons: Vec<ButtonTag> = [(17, "fourth button"), (22, "third button"), (23, "second button"), (27, "first button")]
 //!         .iter()
 //!         .map(|pin| ButtonTag { pin: gpio.get(pin.0).expect(&format!("Failed to get GPIO pin {} with tag {}", pin.0, pin.1)).into_input_pullup(), tag: pin.1 })
-//!         .collect::<Vec<ButtonTag>>();
+//!         .collect();
 //!     Engine::new(
 //!         Settings { 
 //!             colors: Colors { main: BinaryColor::On, secondary: BinaryColor::Off }, 
@@ -232,7 +232,7 @@ pub struct Settings<D: DisplayDevice> {
     /// 
     /// # How to get max possible framerate
     /// 
-    /// To get max possible framerate you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 2)` where `2` are some header bytes and some delays
+    /// To get max possible framerate you can use this formula: `BusSpeed(KHz) ÷ (ScreenWidth × ScreenHeight × 2)` where `2` are some header bytes and some delays
     /// 
     /// # Formula example
     /// 

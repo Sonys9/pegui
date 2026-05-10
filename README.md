@@ -1,13 +1,14 @@
 # Pegui
 
-⚡️ It's an IMGUI-like library which allows developers write beautiful code ⚡️
+⚡️ An async-first, IMGUI-inspired GUI engine for embedded Linux. ⚡️
 
 *🛠 Currently it's in developing 🛠*
 
 # Why?
 
-- ✨ It uses tokio so it fully asynchronous and eats small amount of memory
+- ✨ Built on tokio, so it eats small amount of memory, runs blazing fast and just cool
 - 🌧 Very simple app compiled with musl mode and compiled using `cross build --release --target aarch64-unknown-linux-musl` only takes **1.22** megabytes! 
+- 🔄 Very easy to use
 - 📋 This list will be bigger in the future
 
 # Quick start!
@@ -35,7 +36,7 @@ async fn main() {
     }; // Without init everything on the screen may move to some direction
     let app_state = AppState { counter: 0 };
     let gpio = Gpio::new().expect("Failed to init GPIO");
-    let buttons: <Vec<ButtonTag>> = [(17, "fourth button"), (22, "third button"), (23, "second button"), (27, "first button")]
+    let buttons: Vec<ButtonTag> = [(17, "fourth button"), (22, "third button"), (23, "second button"), (27, "first button")]
         .iter()
         .map(|pin| ButtonTag { pin: gpio.get(pin.0).expect(&format!("Failed to get GPIO pin {} with tag {}", pin.0, pin.1)).into_input_pullup(), tag: pin.1 })
         .collect::<Vec<ButtonTag>>(); // Initializing buttons
@@ -68,7 +69,7 @@ impl App for AppState {
 
 # How to get max possible fps
  
-To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 2)` where `2` are some header bytes and some delays
+To get max possible fps you can use this formula: `BusSpeed(KHz) ÷ (ScreenWidth × ScreenHeight × 2)` where `2` are some header bytes and some delays
 
 ## Formula example
 
@@ -78,12 +79,15 @@ If you see these warnings (you have to initialize the logger first): `Update too
 
 # Todo
 - 🧊 Add different objects support
-- 💃 Add flexbox-like and grid-like something
+- 💃 Add flexbox-like and grid-like API
 - ♟  Add bitmap "videos" and just images support
 - 📱 Add touchscreen support
 - 💾 Add more drivers
+- 🦀 Switch to no_std for microcontrollers support and leaner work
 - ~❌ Become a millionaire~
 - 📋 This list will also be bigger in the future
 
-## 😅 Enjoy the library!
-🙏 Please contribute if you can!
+## 🤝 Contributing
+Contributions are welcome! When you find and fix a bug or add something cool, feel free to make the pull request!
+
+Enjoying Pegui? Give it a star ⭐!
