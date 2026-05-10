@@ -1,5 +1,5 @@
 #![warn(missing_docs)]
-//! # Pi Easy GUI (Pegui)
+//! # (Raspberry) Pi Easy GUI (Pegui)
 //! 
 //! It's a simple GUI library for screens working on popular drivers like Ssd1306
 //! 
