@@ -1,18 +1,19 @@
 use embedded_graphics::{geometry::Point, pixelcolor::BinaryColor, primitives::{PrimitiveStyle, Rectangle, Styled}, text::Alignment};
-use crate::{Command, Font, Message, Object, Text, errors::Error};
+use crate::{Command, Display, Font, Message, Object, Text, errors::Error};
 use tokio::sync::mpsc::Sender;
 
 /// UI struct, used to draw objects
 pub struct Ui {
-    tx: Sender<Message>,
-    bounding_box: Rectangle,
-    fonts: Vec<Font>
+    pub(crate) tx: Sender<Message>,
+    pub bounding_box: Rectangle,
+    pub fonts: Vec<Font>,
+    pub display: Display
 }
 
 impl Ui {
-    pub(crate) fn new(tx: Sender<Message>, bounding_box: Rectangle, fonts: Vec<Font>) -> Self {
-        Self { tx, bounding_box, fonts }
-    }
+    //pub(crate) fn new(ui: Ui) -> Self {
+    //    Self { tx: ui.tx, bounding_box: ui.bounding_box, fonts: ui.fonts, display: ui.display }
+    //}
 
     /// Used to draw a text from scratch
     /// 

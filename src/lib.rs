@@ -138,6 +138,14 @@ struct Message {
     command: Command
 }
 
+#[derive(Clone, Copy, Debug)]
+struct Display {
+    pub width: u32,
+    pub height: u32,
+    pub is_monochrome: bool,
+    pub framerate: u8
+}
+
 /// Colors: `BinaryColor::On` or `BinaryColor::Off`
 #[derive(Debug, Clone, Copy)]
 pub struct Colors {
@@ -305,7 +313,12 @@ impl<A: App> Engine<A> {
     /// 
     /// It also clears the screen and flushes it
     pub async fn start_rendering(&mut self) {
-        let mut ui = Ui::new(self.tx.clone(), self.bounding_box, self.fonts.clone());
+        let mut ui = Ui { 
+            tx: self.tx.clone(), 
+            bounding_box: self.bounding_box, 
+            fonts: self.fonts.clone(),
+            display: Display { width: 0, height: 0, is_monochrome: false, framerate: 1 }
+        };
         let mut last_buttons_state: Option<Buttons> = None;
         loop {
             let start_time = Instant::now();
