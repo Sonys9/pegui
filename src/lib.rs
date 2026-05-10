@@ -97,7 +97,14 @@ pub use crate::ui::Ui;
 /// 
 /// # Example
 /// 
-/// `Text { text: "Hello, world!".to_string(), position: Point { x: 10, y: 10 }, alignment: Alignment::Left, font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On) }`
+/// ```ignore
+/// Text { 
+///     text: "Hello, world!".to_string(), 
+///     position: Point { x: 10, y: 10 }, 
+///     alignment: Alignment::Left, 
+///     font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On) 
+/// }
+/// ```
 #[derive(Debug)]
 pub struct Text {
     /// Text
@@ -146,13 +153,22 @@ pub struct Settings<D: DisplayDevice> {
     /// 
     /// # Example 
     /// 
-    /// `Colors { main: BinaryColor::On, secondary: BinaryColor::off }`
+    /// ```ignore
+    /// Colors { 
+    ///     main: BinaryColor::On, 
+    ///     secondary: BinaryColor::off
+    /// }
+    /// ```
     pub colors: Colors,
     /// Display
     /// 
     /// # Example 
     /// 
-    /// `Ssd1306Display { Ssd1306::new(...blablabla...).into_buffered_graphics_mode() }`
+    /// ```ignore
+    /// Ssd1306Display { 
+    ///     Ssd1306::new(...blablabla...).into_buffered_graphics_mode() 
+    /// }
+    /// ```
     pub display: D,
     /// Framerate
     /// 
@@ -174,7 +190,15 @@ pub struct Settings<D: DisplayDevice> {
     /// 
     /// # Example 
     /// 
-    /// `vec![ Font { font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On), tag: "default" } ]`
+    /// ```ignore
+    /// vec![ 
+    ///     Font { 
+    ///         font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On), 
+    ///         tag: "default" 
+    ///     },
+    ///     ...
+    /// ]
+    /// ```
     /// 
     /// You will able to use them by using a tag
     pub fonts: Vec<Font>
@@ -206,7 +230,9 @@ pub struct Font {
     /// 
     /// # Example how it works
     /// 
-    /// `ui.label(format!("Clicks: {}", self.counter), "default").ok()`
+    /// ```ignore
+    /// ui.label(format!("Clicks: {}", self.counter), "default").ok()
+    /// ```
     /// 
     /// Where `default` is a tag
     pub tag: &'static str

@@ -25,11 +25,18 @@ impl<T: ssd1306::prelude::DisplaySize> DrawTarget for Ssd1306Display<T> {
 /// 
 /// # Example
 /// 
-/// ` Ssd1306Display { Ssd1306::new(...blablabla...).into_buffered_graphics_mode() } `
+/// ```ignore
+/// Ssd1306Display { 
+///     Ssd1306::new(...blablabla...).into_buffered_graphics_mode()
+/// }
+/// ```
 pub struct Ssd1306Display<T: ssd1306::prelude::DisplaySize> {
     /// The display
     /// 
-    /// Example: `Ssd1306::new(...blablabla...).into_buffered_graphics_mode()`
+    /// # Example
+    /// ```ignore
+    /// Ssd1306::new(...blablabla...).into_buffered_graphics_mode()
+    /// ```
     pub display: Ssd1306<I2CInterface<I2cdev>, T, ssd1306::mode::BufferedGraphicsMode<T>>,
 }
 
