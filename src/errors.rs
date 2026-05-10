@@ -10,4 +10,8 @@ pub enum Error {
     /// Happens when something failed to draw
     #[error("Draw error: {0}")]
     DrawError(String),
+
+    /// Happens when something failed to send somethind
+    #[error("Send error: )")]
+    SendError(String)
 }

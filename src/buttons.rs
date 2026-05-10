@@ -13,7 +13,7 @@ pub struct ButtonTag {
 }
 
 /// A button
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Button {
     /// Button tag, `&'static str`
     pub tag: &'static str,
@@ -37,6 +37,16 @@ pub struct Buttons {
 }
 
 impl Buttons {
+    /// Returns Buttons structure where `buttons` is empty vector (`Vec::new()`)
+    pub fn default() -> Self {
+        Self { buttons: Vec::new() }
+    }
+
+    /// Zero copy cool method to copy the buttons
+    pub fn copy(&self) -> Self {
+        Self { buttons: self.buttons.iter().map(|button| *button).collect() }
+    }
+
     /// A cool function which helps checking if button is holded by its tag
     pub fn holded(&self, tag: impl AsRef<str>) -> bool {
         let tag = tag.as_ref();

@@ -18,7 +18,7 @@
 //! # use log::{error, info};
 //! # use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
 //! # use rppal::gpio::Gpio;
-//! # use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, ui::Ui};
+//! # use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, Ui};
 //! #[tokio::main]
 //! async fn main() {
 //!     # let i2c_interface = "/dev/i2c-1".to_string();
@@ -55,9 +55,9 @@
 //! }
 //! 
 //! impl App for AppState {
-//!     async fn update(&mut self, ui: &mut Ui, buttons: Buttons) {
+//!     async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) {
 //!         info!("Buttons state: {:?}", buttons);
-//!         ui.label(format!("Clicks: {}", self.counter), "default").ok();
+//!         ui.label(format!("Clicks: {}", self.counter), "default").await.ok();
 //!         if buttons.clicked("fourth button") {
 //!             self.counter += 1;
 //!         }
@@ -65,10 +65,11 @@
 //! }
 //! ```
 
-use tokio::time::{sleep, Duration, Instant};
+use std::sync::Arc;
+use tokio::{sync::Mutex, time::{Duration, Instant, sleep}};
 use embedded_graphics::{Drawable, mono_font::MonoTextStyle, pixelcolor::BinaryColor, prelude::{DrawTarget, Point}, primitives::{Circle, Rectangle, Triangle}, text::{self, Alignment}};
 use log::{error, debug, warn};
-use tokio::sync::{mpsc::{self, UnboundedSender}, oneshot};
+use tokio::sync::{mpsc::{self, Sender}, oneshot};
 /// An UI module used for creating elements on the screen
 pub mod ui;
 /// This module is used to connect the display
@@ -122,8 +123,7 @@ enum Object {
 enum Command {
     DrawObject(Object),
     Flush,
-    Clear(BinaryColor),
-    ButtonsState(Option<Vec<Button>>)
+    Clear(BinaryColor)
 }
 
 #[derive(Debug)]
@@ -163,11 +163,13 @@ pub struct Settings<D: DisplayDevice> {
     /// 
     /// # How to get max possible fps
     /// 
-    /// To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 9÷8)` where `9÷8` are some header bytes
+    /// To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 2)` where `2` are some header bytes and some delays
     /// 
     /// # Formula example
     /// 
-    /// `400.000` ÷ (`128` × `64` × `9÷8`) = `400.000` ÷ `9216` ~= `43,4 fps` ~= `40 fps`
+    /// `400.000` ÷ (`128` × `64` × `2`) = `400.000` ÷ `16384` ~= `24,41 fps` ~= `24 fps`
+    /// 
+    /// If you see these warnings (you have to initialize the logger first): `Update took too much! (`some number` ms)`, you should a little decrease fps until warnings gone or just use this formula: `1000` ÷ `number from warning`
     pub fps: u8,
     /// Fonts
     /// 
@@ -181,12 +183,13 @@ pub struct Settings<D: DisplayDevice> {
 
 /// The gui engine
 pub struct Engine<A: App> {
-    tx: UnboundedSender<Message>,
-    fps: u8,
+    tx: Sender<Message>,
+    delay: Duration,
     app: A,
     colors: Colors,
     bounding_box: Rectangle,
-    fonts: Vec<Font>
+    fonts: Vec<Font>,
+    buttons: Arc<Mutex<Arc<Buttons>>>
 }
 
 /// A font used for text
@@ -215,7 +218,7 @@ pub trait App {
     /// App update function
     /// 
     /// Asynchronous!!!
-    fn update(&mut self, ui: &mut Ui, buttons: Buttons) -> impl std::future::Future<Output = ()> + Send;
+    fn update(&mut self, ui: &mut Ui, buttons: &Buttons) -> impl std::future::Future<Output = ()> + Send;
 }
 
 impl<A: App> Engine<A> {
@@ -225,6 +228,8 @@ impl<A: App> Engine<A> {
     pub async fn new<D: DisplayDevice + std::marker::Send + 'static>(mut settings: Settings<D>, buttons: Vec<ButtonTag>, app: A) -> Self 
     where D: DrawTarget<Color = BinaryColor> {
         let bounding_box = settings.display.bounding_box();
+        let delay = Duration::from_millis(1000 / settings.fps as u64);
+        let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
         let draw_object = move |object: Object, display: &mut D| {
             match object {
                 Object::Text(text) => text::Text::with_alignment(&text.text, text.position, text.font, text.alignment).draw(display).ok(),
@@ -238,7 +243,7 @@ impl<A: App> Engine<A> {
             };
         }
 
-        let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
+        let (tx, mut rx) = mpsc::channel::<Message>(3);
         tokio::spawn(async move {
             while let Some(message) = rx.recv().await {
                 debug!("Got message: {:?}", message);
@@ -246,58 +251,76 @@ impl<A: App> Engine<A> {
                     Command::DrawObject(object) => draw_object(object, &mut settings.display),
                     Command::Flush => { settings.display.flush().ok(); },
                     Command::Clear(color) => { settings.display.clear(color).ok(); },
-                    Command::ButtonsState(None) => { send_response(message.tx, Command::ButtonsState(Some(buttons.iter().map(|button| Button { pin: button.pin.pin(), tag: button.tag, holded: button.pin.is_low(), clicked: false }).collect()))) },
                     _ => {}
                 }
             };
         });
-        Self { tx: tx, app, fps: settings.fps, colors: settings.colors, bounding_box: bounding_box, fonts: settings.fonts }
-    }
 
-    async fn get_buttons_state(&mut self) -> Result<Buttons, Error> {
-        let (temp_tx, temp_rx) = oneshot::channel();
-        let _ = self.tx.send(Message { tx: Some(temp_tx), command: Command::ButtonsState(None) });
-        if let Ok(Command::ButtonsState(Some(buttons))) = temp_rx.await {
-            return Ok(Buttons { buttons: buttons })
-        };
-        Err(Error::FailedToGet("failed to get buttons state".to_string()))
+        tokio::spawn({
+            let shared_buttons_state = Arc::clone(&shared_buttons_state);
+            async move {
+                loop {
+                    let buttons_state = Arc::new(Buttons { buttons: buttons.iter()
+                        .map(|button| Button { pin: button.pin.pin(), tag: button.tag, holded: button.pin.is_low(), clicked: false })
+                        .collect()
+                    });
+                    {
+                        *shared_buttons_state.lock().await = buttons_state;
+                    };
+                    sleep(delay).await;
+                }
+            }}
+        );
+
+        Self { tx: tx, app, delay, colors: settings.colors, bounding_box: bounding_box, fonts: settings.fonts, buttons: shared_buttons_state }
     }
 
     /// Starts a loop which calls update every `1000 / fps`
     /// 
     /// It also clears the screen and flushes it
     pub async fn start_rendering(&mut self) {
-        let delay = Duration::from_millis(1000 / self.fps as u64);
         let mut ui = Ui::new(self.tx.clone(), self.bounding_box, self.fonts.clone());
         let mut last_buttons_state: Option<Buttons> = None;
         loop {
             let start_time = Instant::now();
-            self.tx.send(Message { tx: None, command: Command::Clear(self.colors.secondary) }).ok();
-            let mut buttons = match self.get_buttons_state().await {
+            self.tx.send(Message { tx: None, command: Command::Clear(self.colors.secondary) }).await.ok();
+            /*let mut buttons = match self.get_buttons_state().await {
                 Ok(buttons) => buttons,
                 Err(e) => {
-                    error!("Failed to get buttons, got error: {:?}. Returning empty structure", e);
-                    Buttons { buttons: Vec::new() }
+                    error!("Failed to get buttons, got error: {:?}. Returning empty Buttons", e);
+                    Buttons::default()
                 }
+            };*/
+            let arc_buttons = { 
+                let mutex = self.buttons.lock().await;
+                Arc::clone(&*mutex)
             };
-            if let Some(last_buttons_state) = last_buttons_state {
-                buttons = Buttons { 
-                    buttons: buttons.buttons
-                        .into_iter()
-                        .map(|mut button| { if button.holded && !last_buttons_state.pin_holded(button.pin) { button.clicked = true }; button } )
+            let buttons = if let Some(last_buttons_state) = last_buttons_state {
+                Buttons { buttons: 
+                    arc_buttons.buttons
+                        .iter()
+                        .map(|button| {
+                            let mut button = *button;
+                            if button.holded && !last_buttons_state.pin_holded(button.pin) { 
+                                button.clicked = true
+                            }; 
+                            button 
+                        } )
                         .collect() 
-                };
+                }
+            } else {
+                arc_buttons.copy()
             };
-            last_buttons_state = Some(buttons.clone());
-            self.app.update(&mut ui, buttons).await;
-            self.tx.send(Message { tx: None, command: Command::Flush }).ok();
+            last_buttons_state = Some(buttons.copy());
+            self.app.update(&mut ui, &buttons).await;
+            self.tx.send(Message { tx: None, command: Command::Flush }).await.ok();
             let update_time = Instant::now() - start_time;
-            if update_time > delay {
+            if update_time > self.delay {
                 warn!("Update took too much! ({} ms)", update_time.as_millis());
                 continue;
             };
             debug!("Update took {} ms", update_time.as_millis());
-            sleep(delay - update_time).await;
+            sleep(self.delay - update_time).await;
         }
     }
 }

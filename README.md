@@ -68,11 +68,13 @@ impl App for AppState {
 
 # How to get max possible fps
  
-To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 9÷8)` where `9÷8` are some header bytes
+To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 2)` where `2` are some header bytes and some delays
 
-## Formula example
+# Formula example
 
-`400.000` ÷ (`128` × `64` × `9÷8`) = `400.000` ÷ `9216` ~= `43,4 fps` ~= `40 fps`
+`400.000` ÷ (`128` × `64` × `2`) = `400.000` ÷ `16384` ~= `24,41 fps` ~= `24 fps`
+
+If you see these warnings (you have to initialize the logger first): `Update took too much! (`some number` ms)`, you should a little decrease fps until warnings gone or just use this formula: `1000` ÷ `number from warning` - `4` where `4` is safety stock
 
 # Todo
 - 🧊 Add different objects support

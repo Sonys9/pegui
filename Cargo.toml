@@ -11,3 +11,9 @@ rppal = "0.22.1"
 ssd1306 = "0.10.0"
 thiserror = "2.0.18"
 tokio = { version = "1.52.1", features = ["full"] }
+
+[profile.release]
+opt-level = 's'
+lto = "fat"
+codegen-units = 1
+strip = true
