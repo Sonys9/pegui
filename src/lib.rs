@@ -1,16 +1,16 @@
 #![warn(missing_docs)]
 //! # Pi Easy GUI (Pegui)
-//! 
+//!
 //! It's a simple GUI library for screens working on popular drivers like Ssd1306
-//! 
+//!
 //! It also support GPIO buttons but doesn't support touchscreen
-//! 
+//!
 //! # Currently supported drivers
-//! 
+//!
 //! Ssd1306
-//! 
+//!
 //! ## Quick start
-//! 
+//!
 //! ```rust,no_run
 //! # use std::env;
 //! # use embedded_graphics::{mono_font::{MonoTextStyle, ascii::FONT_6X10}, pixelcolor::BinaryColor};
@@ -39,8 +39,8 @@
 //!         .map(|pin| ButtonTag { pin: gpio.get(pin.0).expect(&format!("Failed to get GPIO pin {} with tag {}", pin.0, pin.1)).into_input_pullup(), tag: pin.1 })
 //!         .collect();
 //!     Engine::new(
-//!         Settings { 
-//!             colors: Colors { main: BinaryColor::On, secondary: BinaryColor::Off }, 
+//!         Settings {
+//!             colors: Colors { main: BinaryColor::On, secondary: BinaryColor::Off },
 //!             display: Ssd1306Display { display },
 //!             fps: 20,
 //!             fonts: vec![ Font::new("default", MonoTextStyle::new(&FONT_6X10, BinaryColor::On)) ]
@@ -49,11 +49,11 @@
 //!         app_state
 //!     ).await.start_rendering().await;
 //! }
-//! 
+//!
 //! struct AppState {
 //!     counter: u32
 //! }
-//! 
+//!
 //! impl App for AppState {
 //!     async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) {
 //!         info!("Buttons state: {:?}", buttons);
@@ -65,47 +65,64 @@
 //! }
 //! ```
 
+use embedded_graphics::{
+    Drawable,
+    geometry::Size,
+    mono_font::MonoTextStyle,
+    pixelcolor::BinaryColor,
+    prelude::{DrawTarget, Point},
+    primitives::{
+        Circle, Primitive, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, Styled,
+        StyledDrawable, Triangle,
+    },
+    text::{self, Alignment},
+};
+use log::{debug, error, warn};
 use std::{collections::HashMap, sync::Arc};
-use tokio::{sync::Mutex, time::{Duration, Instant, sleep}};
-use embedded_graphics::{Drawable, geometry::Size, mono_font::MonoTextStyle, pixelcolor::BinaryColor, prelude::{DrawTarget, Point}, primitives::{Circle, Primitive, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, Styled, StyledDrawable, Triangle}, text::{self, Alignment}};
-use log::{error, debug, warn};
-use tokio::sync::{mpsc::{self, Sender}, oneshot};
-/// An UI module used for creating elements on the screen
-pub mod ui;
-/// This module is used to connect the display
-pub mod display_device;
+use tokio::sync::{
+    mpsc::{self, Sender},
+    oneshot,
+};
+use tokio::{
+    sync::Mutex,
+    time::{Duration, Instant, sleep},
+};
 /// This module is used to interact with buttons
 pub mod buttons;
+/// This module is used to connect the display
+pub mod display_device;
 /// This module is used for errors
 pub mod errors;
 /// This module is used for fonts
 pub mod fonts;
+/// An UI module used for creating elements on the screen
+pub mod ui;
 pub use crate::buttons::{Button, ButtonTag, Buttons};
 pub use crate::display_device::{DisplayDevice, Ssd1306Display};
-pub use crate::ui::Ui;
-pub use crate::fonts::Font;
 use crate::errors::Error;
+pub use crate::fonts::Font;
+pub use crate::ui::Ui;
 
 /// A structure used for creating a text
-/// 
+///
 /// Arguments:
-/// 
+///
 ///  - `text` - String
-/// 
+///
 ///  - `position` - Point from `embedded_graphics_core::geometry::point`: struct `{ x: i32, y: i32 }`,
-/// 
+///
 ///  - `alignment` - Alignment from `embedded_graphics::text::Alignment`: enum `{ Left, Center, Right }`, works like CSS alignment,
-/// 
+///
 ///  - `font` - MonoTextStyle font from `embedded_graphics::mono_font::mono_text_style`, currently only supports BinaryColor
-/// 
+///
 /// # Example
-/// 
+///
 /// ```ignore
-/// Text { 
-///     text: "Hello, world!".to_string(), 
-///     position: Point { x: 10, y: 10 }, 
-///     alignment: Alignment::Left, 
-///     font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On) 
+/// Text {
+///     text: "Hello, world!".to_string(),
+///     position: Point { x: 10, y: 10 },
+///     alignment: Alignment::Left,
+///     font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On)
 /// }
 /// ```
 #[derive(Debug)]
@@ -117,7 +134,7 @@ pub struct Text {
     /// Text alignment, it' an alignment from `embedded_graphics::text::Alignment`: enum `{ Left, Center, Right }`, works like CSS alignment
     pub alignment: Alignment,
     /// Text font, it's a MonoTextStyle font from `embedded_graphics::mono_font::mono_text_style`, currently only supports BinaryColor
-    pub font: MonoTextStyle<'static, BinaryColor>
+    pub font: MonoTextStyle<'static, BinaryColor>,
 }
 
 #[derive(Debug)]
@@ -125,26 +142,26 @@ enum Object {
     Rectangle(Styled<Rectangle, PrimitiveStyle<BinaryColor>>),
     Triangle(Triangle),
     Circle(Circle),
-    Text(Text)
+    Text(Text),
 }
 
 #[derive(Debug)]
 enum Command {
     DrawObject(Object),
     Flush,
-    Clear(BinaryColor)
+    Clear(BinaryColor),
 }
 
 #[derive(Debug)]
 struct Message {
     tx: Option<oneshot::Sender<Command>>,
-    command: Command
+    command: Command,
 }
 
 /// Display info
-/// 
+///
 /// # Example
-/// 
+///
 /// ```ignore
 /// Display {
 ///     width: 128,
@@ -166,9 +183,9 @@ struct Message {
 #[derive(Clone, Copy, Debug)]
 pub struct Display {
     /// Display size (a copy from bounding box)
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```ignore
     /// embedded_graphics::geometry::Size {
     ///     width: 128,
@@ -177,9 +194,9 @@ pub struct Display {
     /// ```
     pub size: Size,
     /// Bounding box
-    /// 
+    ///
     /// # Example
-    /// 
+    ///
     /// ```ignore
     /// embedded_graphics::primitives::Rectangle {
     ///     top_left: embedded_graphics::geometry::Point {
@@ -196,7 +213,7 @@ pub struct Display {
     /// Tells you if the screen is monochrome
     pub is_monochrome: bool,
     /// Framerate
-    pub framerate: u8
+    pub framerate: u8,
 }
 
 /// Colors: `BinaryColor::On` or `BinaryColor::Off`
@@ -205,64 +222,64 @@ pub struct Colors {
     /// The color used for objects
     pub main: BinaryColor,
     /// The color used for background and other not main stuff
-    pub secondary: BinaryColor
+    pub secondary: BinaryColor,
 }
 
 /// Settings for an Engine
 pub struct Settings<D: DisplayDevice> {
     /// Colors (struct Colors)
-    /// 
-    /// # Example 
-    /// 
+    ///
+    /// # Example
+    ///
     /// ```ignore
-    /// Colors { 
-    ///     main: BinaryColor::On, 
+    /// Colors {
+    ///     main: BinaryColor::On,
     ///     secondary: BinaryColor::off
     /// }
     /// ```
     pub colors: Colors,
     /// Display
-    /// 
-    /// # Example 
-    /// 
+    ///
+    /// # Example
+    ///
     /// ```ignore
-    /// Ssd1306Display { 
-    ///     Ssd1306::new(...blablabla...).into_buffered_graphics_mode() 
+    /// Ssd1306Display {
+    ///     Ssd1306::new(...blablabla...).into_buffered_graphics_mode()
     /// }
     /// ```
     pub display: D,
     /// Framerate (FPS)
-    /// 
-    /// # Example 
-    /// 
+    ///
+    /// # Example
+    ///
     /// `20`
-    /// 
+    ///
     /// # How to get max possible framerate
-    /// 
+    ///
     /// To get max possible framerate you can use this formula: `BusSpeed(KHz) ÷ (ScreenWidth × ScreenHeight × 2)` where `2` are some header bytes and some delays
-    /// 
+    ///
     /// # Formula example
-    /// 
+    ///
     /// `400.000` ÷ (`128` × `64` × `2`) = `400.000` ÷ `16384` ~= `24,41 fps` ~= `24 fps`
-    /// 
+    ///
     /// If you see these warnings (you have to initialize the logger first): `Update took too much! (some number ms)`, you should a little decrease your framerate until warnings gone or just use this formula: `1000` ÷ `number from warning`
     pub framerate: u8,
     /// Fonts
-    /// 
-    /// # Example 
-    /// 
+    ///
+    /// # Example
+    ///
     /// ```ignore
-    /// vec![ 
-    ///     Font { 
-    ///         font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On), 
-    ///         tag: "default" 
+    /// vec![
+    ///     Font {
+    ///         font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On),
+    ///         tag: "default"
     ///     },
     ///     ...
     /// ]
     /// ```
-    /// 
+    ///
     /// You will able to use them by using a tag
-    pub fonts: Vec<Font>
+    pub fonts: Vec<Font>,
 }
 
 /// The gui engine
@@ -273,35 +290,55 @@ pub struct Engine<A: App> {
     colors: Colors,
     fonts: HashMap<&'static str, MonoTextStyle<'static, BinaryColor>>,
     buttons: Arc<Mutex<Arc<Buttons>>>,
-    display: Display
+    display: Display,
 }
 
 /// App trait
 pub trait App {
     /// App update function
-    /// 
+    ///
     /// Asynchronous!!!
-    fn update(&mut self, ui: &mut Ui, buttons: &Buttons) -> impl std::future::Future<Output = ()> + Send;
+    fn update(
+        &mut self,
+        ui: &mut Ui,
+        buttons: &Buttons,
+    ) -> impl std::future::Future<Output = ()> + Send;
 }
 
 impl<A: App> Engine<A> {
     /// Creates new Engine
-    /// 
+    ///
     /// You should provide settings, buttons and an app state
-    pub async fn new<D: DisplayDevice + std::marker::Send + 'static>(mut settings: Settings<D>, buttons: Vec<ButtonTag>, app: A) -> Self 
-    where D: DrawTarget<Color = BinaryColor> {
+    pub async fn new<D: DisplayDevice + std::marker::Send + 'static>(
+        mut settings: Settings<D>,
+        buttons: Vec<ButtonTag>,
+        app: A,
+    ) -> Self
+    where
+        D: DrawTarget<Color = BinaryColor>,
+    {
         let bounding_box = settings.display.bounding_box();
         let is_monochrome = settings.display.is_monochrome();
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
         let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
         let draw_object = move |object: Object, display: &mut D| {
             match object {
-                Object::Text(text) => { text::Text::with_alignment(&text.text, text.position, text.font, text.alignment).draw(display).ok(); },
-                Object::Rectangle(rectangle) => { rectangle.draw(display).ok(); },
+                Object::Text(text) => {
+                    text::Text::with_alignment(
+                        &text.text,
+                        text.position,
+                        text.font,
+                        text.alignment,
+                    )
+                    .draw(display)
+                    .ok();
+                }
+                Object::Rectangle(rectangle) => {
+                    rectangle.draw(display).ok();
+                }
                 _ => {}
             };
         };
-        
 
         let (tx, mut rx) = mpsc::channel::<Message>(3);
         tokio::spawn(async move {
@@ -309,42 +346,53 @@ impl<A: App> Engine<A> {
                 debug!("Got message: {:?}", message);
                 match message.command {
                     Command::DrawObject(object) => draw_object(object, &mut settings.display),
-                    Command::Flush => { settings.display.flush().ok(); },
-                    Command::Clear(color) => { settings.display.clear(color).ok(); },
+                    Command::Flush => {
+                        settings.display.flush().ok();
+                    }
+                    Command::Clear(color) => {
+                        settings.display.clear(color).ok();
+                    }
                     _ => {}
                 }
-            };
+            }
         });
 
         tokio::spawn({
             let shared_buttons_state = Arc::clone(&shared_buttons_state);
             async move {
                 loop {
-                    let buttons_state = Arc::new(Buttons { buttons: buttons.iter()
-                        .map(|button| Button { pin: button.pin.pin(), tag: button.tag, holded: button.pin.is_low(), clicked: false })
-                        .collect()
+                    let buttons_state = Arc::new(Buttons {
+                        buttons: buttons
+                            .iter()
+                            .map(|button| Button {
+                                pin: button.pin.pin(),
+                                tag: button.tag,
+                                holded: button.pin.is_low(),
+                                clicked: false,
+                            })
+                            .collect(),
                     });
                     {
                         *shared_buttons_state.lock().await = buttons_state;
                     };
                     sleep(delay).await;
                 }
-            }}
-        );
-
-        Self { 
-            tx: tx, 
-            app, 
-            delay, 
-            colors: settings.colors, 
-            fonts: Self::vec_to_hashmap(settings.fonts), 
-            buttons: shared_buttons_state, 
-            display: Display { 
-                size: bounding_box.size,
-                bounding_box, 
-                is_monochrome: is_monochrome, 
-                framerate: settings.framerate
             }
+        });
+
+        Self {
+            tx: tx,
+            app,
+            delay,
+            colors: settings.colors,
+            fonts: Self::vec_to_hashmap(settings.fonts),
+            buttons: shared_buttons_state,
+            display: Display {
+                size: bounding_box.size,
+                bounding_box,
+                is_monochrome: is_monochrome,
+                framerate: settings.framerate,
+            },
         }
     }
 
@@ -355,23 +403,34 @@ impl<A: App> Engine<A> {
         };
     }
 
-    fn vec_to_hashmap(fonts: Vec<Font>) -> HashMap<&'static str, MonoTextStyle<'static, BinaryColor>> {
-        fonts.into_iter().map(|font| (font.tag, font.font)).collect()
+    fn vec_to_hashmap(
+        fonts: Vec<Font>,
+    ) -> HashMap<&'static str, MonoTextStyle<'static, BinaryColor>> {
+        fonts
+            .into_iter()
+            .map(|font| (font.tag, font.font))
+            .collect()
     }
 
     /// Starts a loop which calls update every `1000 / fps`
-    /// 
+    ///
     /// It also clears the screen and flushes it
     pub async fn start_rendering(&mut self) {
-        let mut ui = Ui { 
-            tx: self.tx.clone(), 
+        let mut ui = Ui {
+            tx: self.tx.clone(),
             fonts: self.fonts.clone(),
-            display: self.display
+            display: self.display,
         };
         let mut last_buttons_state: Option<Buttons> = None;
         loop {
             let start_time = Instant::now();
-            self.tx.send(Message { tx: None, command: Command::Clear(self.colors.secondary) }).await.ok();
+            self.tx
+                .send(Message {
+                    tx: None,
+                    command: Command::Clear(self.colors.secondary),
+                })
+                .await
+                .ok();
             /*let mut buttons = match self.get_buttons_state().await {
                 Ok(buttons) => buttons,
                 Err(e) => {
@@ -379,29 +438,36 @@ impl<A: App> Engine<A> {
                     Buttons::default()
                 }
             };*/
-            let arc_buttons = { 
+            let arc_buttons = {
                 let mutex = self.buttons.lock().await;
                 Arc::clone(&*mutex)
             };
             let buttons = if let Some(last_buttons_state) = last_buttons_state {
-                Buttons { buttons: 
-                    arc_buttons.buttons
+                Buttons {
+                    buttons: arc_buttons
+                        .buttons
                         .iter()
                         .map(|button| {
                             let mut button = *button;
-                            if button.holded && !last_buttons_state.pin_holded(button.pin) { 
+                            if button.holded && !last_buttons_state.pin_holded(button.pin) {
                                 button.clicked = true
-                            }; 
-                            button 
-                        } )
-                        .collect() 
+                            };
+                            button
+                        })
+                        .collect(),
                 }
             } else {
                 arc_buttons.copy()
             };
             last_buttons_state = Some(buttons.copy());
             self.app.update(&mut ui, &buttons).await;
-            self.tx.send(Message { tx: None, command: Command::Flush }).await.ok();
+            self.tx
+                .send(Message {
+                    tx: None,
+                    command: Command::Flush,
+                })
+                .await
+                .ok();
             let update_time = Instant::now() - start_time;
             if update_time > self.delay {
                 warn!("Update took too much! ({} ms)", update_time.as_millis());
