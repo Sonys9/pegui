@@ -7,7 +7,7 @@
 # Why?
 
 - ✨ It uses tokio so it fully asynchronous and eats small amount of memory
-- 🌧 Very simple app compiled with musl mode and compiled using `cross build --release --target aarch64-unknown-linux-musl` only takes **1.22** megabytes!
+- 🌧 Very simple app compiled with musl mode and compiled using `cross build --release --target aarch64-unknown-linux-musl` only takes **1.22** megabytes! 
 - 📋 This list will be bigger in the future
 
 # Quick start!
