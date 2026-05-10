@@ -1,0 +1,19 @@
+[package]
+name = "label"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+embedded-graphics = "0.8.2"
+linux-embedded-hal = "0.4.1"
+log = "0.4.29"
+rppal = "0.22.1"
+ssd1306 = "0.10.0"
+tokio = { version = "1.52.1", features = ["full"] }
+pegui = { path = "../../pegui" } # change the path to the folder with the library
+
+[profile.release] # Some optimizations for the binary size
+opt-level = 's'
+lto = "fat"
+codegen-units = 1
+strip = true

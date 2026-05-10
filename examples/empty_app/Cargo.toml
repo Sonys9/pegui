@@ -1,0 +1,18 @@
+[package]
+name = "empty_app"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+embedded-graphics = "0.8.2"
+linux-embedded-hal = "0.4.1"
+pegui = { path = "../../pegui" } # change the path to the folder with the library
+rppal = "0.22.1"
+ssd1306 = "0.10.0"
+tokio = { version = "1.52.2", features = ["full"] }
+
+[profile.release] # Some optimizations for the binary size
+opt-level = 's'
+lto = "fat"
+codegen-units = 1
+strip = true
