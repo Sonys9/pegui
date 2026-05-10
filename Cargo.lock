@@ -67,6 +67,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
+name = "clicker"
+version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
+ "linux-embedded-hal",
+ "log",
+ "pegui",
+ "rppal",
+ "ssd1306",
+ "tokio",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -157,6 +170,18 @@ checksum = "fba4268c14288c828995299e59b12babdbe170f6c6d73731af1b4648142e8605"
 dependencies = [
  "embedded-hal",
  "nb",
+]
+
+[[package]]
+name = "empty_app"
+version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
+ "linux-embedded-hal",
+ "pegui",
+ "rppal",
+ "ssd1306",
+ "tokio",
 ]
 
 [[package]]
