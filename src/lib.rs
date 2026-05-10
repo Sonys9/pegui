@@ -43,7 +43,7 @@
 //!             colors: Colors { main: BinaryColor::On, secondary: BinaryColor::Off }, 
 //!             display: Ssd1306Display { display },
 //!             fps: 20,
-//!             fonts: vec![ Font { font: MonoTextStyle::new(&FONT_6X10, BinaryColor::On), tag: "default" } ]
+//!             fonts: vec![ Font::new("default", MonoTextStyle::new(&FONT_6X10, BinaryColor::On)) ]
 //!         },
 //!         buttons,
 //!         app_state
