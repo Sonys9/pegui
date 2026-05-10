@@ -67,7 +67,7 @@
 
 use std::sync::Arc;
 use tokio::{sync::Mutex, time::{Duration, Instant, sleep}};
-use embedded_graphics::{Drawable, mono_font::MonoTextStyle, pixelcolor::BinaryColor, prelude::{DrawTarget, Point}, primitives::{Circle, Rectangle, Triangle}, text::{self, Alignment}};
+use embedded_graphics::{Drawable, mono_font::MonoTextStyle, pixelcolor::BinaryColor, prelude::{DrawTarget, Point}, primitives::{Circle, Primitive, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, Styled, StyledDrawable, Triangle}, text::{self, Alignment}};
 use log::{error, debug, warn};
 use tokio::sync::{mpsc::{self, Sender}, oneshot};
 /// An UI module used for creating elements on the screen
@@ -110,10 +110,9 @@ pub struct Text {
     pub font: MonoTextStyle<'static, BinaryColor>
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 enum Object {
-    Rectangle(Rectangle),
+    Rectangle(Styled<Rectangle, PrimitiveStyle<BinaryColor>>),
     Triangle(Triangle),
     Circle(Circle),
     Text(Text)
@@ -232,8 +231,9 @@ impl<A: App> Engine<A> {
         let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
         let draw_object = move |object: Object, display: &mut D| {
             match object {
-                Object::Text(text) => text::Text::with_alignment(&text.text, text.position, text.font, text.alignment).draw(display).ok(),
-                _ => None
+                Object::Text(text) => { text::Text::with_alignment(&text.text, text.position, text.font, text.alignment).draw(display).ok(); },
+                Object::Rectangle(rectangle) => { rectangle.draw(display).ok(); },
+                _ => {}
             };
         };
         fn send_response<'a>(sender: Option<oneshot::Sender<Command>>, message: Command) {

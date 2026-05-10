@@ -1,4 +1,4 @@
-use embedded_graphics::{geometry::Point, primitives::Rectangle, text::Alignment};
+use embedded_graphics::{geometry::Point, pixelcolor::BinaryColor, primitives::{PrimitiveStyle, Rectangle, Styled}, text::Alignment};
 use crate::{Command, Font, Message, Object, Text, errors::Error};
 use tokio::sync::mpsc::Sender;
 
@@ -39,5 +39,25 @@ impl Ui {
     /// Used to get a bounding box as a embedded_graphics::primitives::Rectangle
     pub fn bounding_box(&mut self) -> Rectangle {
         self.bounding_box
+    }
+
+    /// Used to draw a rectangle from scratch
+    /// 
+    /// Example: ```rust,norun
+    /// let style = PrimitiveStyleBuilder::new()
+    ///     .stroke_color(BinaryColor::On)
+    ///     .stroke_width(3)
+    ///     .fill_color(BinaryColor::Off)
+    ///     .build();
+    /// 
+    /// let rectangle = Rectangle::new(Point::new(30, 20), Size::new(10, 15))
+    ///     .into_styled(style);
+    /// 
+    /// ui.rectangle(rectangle).await.ok();
+    /// ```
+    pub async fn rectangle(&mut self, rectangle: Styled<Rectangle, PrimitiveStyle<BinaryColor>>) -> Result<(), Error> {
+        self.tx.send(Message { tx: None, command: Command::DrawObject(Object::Rectangle(rectangle))}).await
+            .map_err(|e| Error::SendError(format!("Failed to send the rectangle to other thread: {}", e)))?; 
+        Ok(())
     }
 }
