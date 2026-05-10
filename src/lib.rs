@@ -161,7 +161,13 @@ pub struct Settings<D: DisplayDevice> {
     /// 
     /// `20`
     /// 
-    /// For fps bigger than 5 you have to increase I2C bitrate and your display chip should support fast i2c
+    /// # How to get max possible fps
+    /// 
+    /// To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 9÷8)` where `9÷8` are some header bytes
+    /// 
+    /// # Formula example
+    /// 
+    /// `400.000` ÷ (`128` × `64` × `9÷8`) = `400.000` ÷ `9216` ~= `43,4 fps` ~= `40 fps`
     pub fps: u8,
     /// Fonts
     /// 

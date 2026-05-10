@@ -66,6 +66,14 @@ impl App for AppState {
 }
 ```
 
+## How to get max possible fps
+ 
+To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 9÷8)` where `9÷8` are some header bytes
+
+# Formula example
+
+`400.000` ÷ (`128` × `64` × `9÷8`) = `400.000` ÷ `9216` ~= `43,4 fps` ~= `40 fps`
+
 ## Todo
 - 🧊 Add different objects support
 - 💃 Add flexbox-like and grid-like something
