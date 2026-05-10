@@ -1,16 +1,16 @@
-## Pegui
+# Pegui
 
 ⚡️ It's an IMGUI-like library which allows developers write beautiful code ⚡️
 
 *🛠 Currently it's in developing 🛠*
 
-## Why?
+# Why?
 
 - ✨ It uses tokio so it fully asynchronous and eats small amount of memory
 - 🌧 Very simple app compiled with musl mode (binary includes every dependency so it will work on every system) only takes **1.2** megabytes!
 - 📋 This list will be bigger in the future
 
-## Quick start!
+# Quick start!
 
 ```rust
 use embedded_graphics::{mono_font::{MonoTextStyle, ascii::FONT_6X10}, pixelcolor::BinaryColor}; // A library which pegui uses
@@ -66,15 +66,15 @@ impl App for AppState {
 }
 ```
 
-## How to get max possible fps
+# How to get max possible fps
  
 To get max possible fps you can use this formula: `ScreenKHz ÷ (ScreenWidth × ScreenHeight × 9÷8)` where `9÷8` are some header bytes
 
-# Formula example
+## Formula example
 
 `400.000` ÷ (`128` × `64` × `9÷8`) = `400.000` ÷ `9216` ~= `43,4 fps` ~= `40 fps`
 
-## Todo
+# Todo
 - 🧊 Add different objects support
 - 💃 Add flexbox-like and grid-like something
 - ♟  Add bitmap "videos" and just images support
