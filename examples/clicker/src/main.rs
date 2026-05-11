@@ -33,10 +33,12 @@ async fn main() {
     .map(|pin| ButtonTag {
         pin: gpio
             .get(pin.0)
-            .expect(&format!(
-                "Failed to get GPIO pin {} with tag {}",
-                pin.0, pin.1
-            ))
+            .unwrap_or_else(|e| {
+                panic!(
+                    "Failed to get GPIO pin {} with tag {} got error: {}",
+                    pin.0, pin.1, e
+                )
+            })
             .into_input_pullup(),
         tag: pin.1,
     })
