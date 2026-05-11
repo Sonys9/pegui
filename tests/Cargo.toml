@@ -18,3 +18,7 @@ path = "src/label_test.rs"
 [[test]]
 name = "display_clear_test"
 path = "src/display_clear_test.rs"
+
+[[test]]
+name = "rectangle_test"
+path = "src/rectangle_test.rs"

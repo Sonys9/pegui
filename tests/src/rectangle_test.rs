@@ -1,7 +1,5 @@
 use embedded_graphics::{
-    mock_display::MockDisplay,
-    mono_font::{MonoTextStyle, ascii::FONT_6X10},
-    pixelcolor::BinaryColor,
+    geometry::{Point, Size}, mock_display::MockDisplay, mono_font::{MonoTextStyle, ascii::FONT_6X10}, pixelcolor::BinaryColor, primitives::{Primitive, PrimitiveStyleBuilder, Rectangle}
 };
 use pegui::{App, Buttons, Colors, Engine, Font, Settings, Ui, drivers::mock::Mock, errors::Error};
 
@@ -37,12 +35,20 @@ struct AppState {
 
 impl App for AppState {
     async fn update(&mut self, ui: &mut Ui, _buttons: &Buttons) -> Result<(), Error> {
-        let text = "Test".to_string();
-        let expected_width = 23;
-        let expected_height = 7;
+        let expected_width = 25;
+        let expected_height = 25;
         match self.frame_number {
             0 => {
-                ui.label(text, "default").await.ok();
+                let style = PrimitiveStyleBuilder::new()
+                    .stroke_color(BinaryColor::On)
+                    .stroke_width(1)
+                    .fill_color(BinaryColor::Off)
+                    .build();
+                
+                let rectangle = Rectangle::new(Point::new(0, 0), Size::new(expected_width, expected_height))
+                    .into_styled(style);
+
+                ui.rectangle(rectangle).await.ok();
             }
             _ => {
                 let affected_area = ui
@@ -50,7 +56,7 @@ impl App for AppState {
                     .await
                     .expect("Failed to get affected area");
                 assert_eq!(affected_area.size.height, expected_height);
-                assert_eq!(affected_area.size.width as usize, expected_width);
+                assert_eq!(affected_area.size.width, expected_width);
                 return Err(Error::End(()));
             }
         };
