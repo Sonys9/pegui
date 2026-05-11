@@ -24,24 +24,37 @@ async fn test() {
             )],
         },
         Vec::new(),
-        AppState { },
+        AppState { frame_number: 0 },
     )
     .await
-    .start_rendering(true)
+    .start_rendering(false)
     .await;
 }
 
-struct AppState {}
+struct AppState {
+    frame_number: u32,
+}
 
 impl App for AppState {
     async fn update(&mut self, ui: &mut Ui, _buttons: &Buttons) -> Result<(), Error> {
-        // The library clears the screen before calling update
-        let affected_area = ui
-            .affected_area()
-            .await
-            .expect("Failed to get affected area");
-        assert_eq!(affected_area.size.width, 64);
-        assert_eq!(affected_area.size.height, 64);
-        Err(Error::End(()))
+        let text = "Test".to_string();
+        let expected_width = 23;
+        let expected_height = 7;
+        match self.frame_number {
+            0 => {
+                ui.label(text, "default").await.ok();
+            }
+            _ => {
+                let affected_area = ui
+                    .affected_area()
+                    .await
+                    .expect("Failed to get affected area");
+                assert_eq!(affected_area.size.height, expected_height);
+                assert_eq!(affected_area.size.width as usize, expected_width);
+                return Err(Error::End(()));
+            }
+        };
+        self.frame_number += 1;
+        Ok(())
     }
 }

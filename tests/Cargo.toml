@@ -14,3 +14,7 @@ tokio = { version = "1.52.2", features = ["full"] }
 [[test]]
 name = "label_test"
 path = "src/label_test.rs"
+
+[[test]]
+name = "display_clear_test"
+path = "src/display_clear_test.rs"
