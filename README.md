@@ -100,7 +100,10 @@ If you see these warnings (you have to initialize the logger first): `Update too
 - ~❌ Become a millionaire~
 - 📋 This list will also be bigger in the future
 
-## 🤝 Contributing
-Contributions are welcome! When you find and fix a bug or add something cool, feel free to make the pull request!
+# Contributing
 
-Enjoying Pegui? Give it a star ⭐!
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+# Code of Conduct
+
+This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
