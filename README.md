@@ -28,7 +28,7 @@ use linux_embedded_hal::I2cdev; // For I2C connection
 use log::{error, info}; // For logging
 use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*}; // The display driver
 use rppal::gpio::Gpio; // For buttons
-use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, ui::Ui};
+use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, ui::Ui, errors::Error};
 
 #[tokio::main] // The library is asynchronous
 async fn main() {
@@ -65,7 +65,7 @@ struct AppState {
 } // Our app state
 
 impl App for AppState {
-    async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) -> Error { // Library calls this function every 1000 / fps milliseconds, Error is pegui::errors::Error
+    async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) -> Error { // Library calls this function every 1000 / fps milliseconds
         info!("Buttons state: {:?}", buttons);
         ui.label(format!("Clicks: {}", self.counter), "default").await.ok(); // Creating a label with text
         if buttons.clicked("fourth button") { // Checking if the 4th button was clicked
