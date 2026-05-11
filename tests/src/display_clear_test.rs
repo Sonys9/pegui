@@ -24,7 +24,7 @@ async fn test() {
             )],
         },
         Vec::new(),
-        AppState { },
+        AppState {},
     )
     .await
     .start_rendering(true)

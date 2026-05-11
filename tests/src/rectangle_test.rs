@@ -1,5 +1,9 @@
 use embedded_graphics::{
-    geometry::{Point, Size}, mock_display::MockDisplay, mono_font::{MonoTextStyle, ascii::FONT_6X10}, pixelcolor::BinaryColor, primitives::{Primitive, PrimitiveStyleBuilder, Rectangle}
+    geometry::{Point, Size},
+    mock_display::MockDisplay,
+    mono_font::{MonoTextStyle, ascii::FONT_6X10},
+    pixelcolor::BinaryColor,
+    primitives::{Primitive, PrimitiveStyleBuilder, Rectangle},
 };
 use pegui::{App, Buttons, Colors, Engine, Font, Settings, Ui, drivers::mock::Mock, errors::Error};
 
@@ -44,9 +48,10 @@ impl App for AppState {
                     .stroke_width(1)
                     .fill_color(BinaryColor::Off)
                     .build();
-                
-                let rectangle = Rectangle::new(Point::new(0, 0), Size::new(expected_width, expected_height))
-                    .into_styled(style);
+
+                let rectangle =
+                    Rectangle::new(Point::new(0, 0), Size::new(expected_width, expected_height))
+                        .into_styled(style);
 
                 ui.rectangle(rectangle).await.ok();
             }
