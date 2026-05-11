@@ -243,6 +243,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "label_test"
+version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
+ "linux-embedded-hal",
+ "pegui",
+ "rppal",
+ "ssd1306",
+ "tokio",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -18,7 +18,7 @@
 //! # use log::{error, info};
 //! # use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
 //! # use rppal::gpio::Gpio;
-//! # use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, Ui};
+//! # use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, Ui, errors::Error};
 //! #[tokio::main]
 //! async fn main() {
 //!     # let i2c_interface = "/dev/i2c-1".to_string();
@@ -47,7 +47,7 @@
 //!         },
 //!         buttons,
 //!         app_state
-//!     ).await.start_rendering().await;
+//!     ).await.start_rendering(true).await; // true is for clearing the screen before every update call
 //! }
 //!
 //! struct AppState {
@@ -55,12 +55,13 @@
 //! }
 //!
 //! impl App for AppState {
-//!     async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) {
+//!     async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) -> Result<(), Error> { // Error is pegui::errors::Error
 //!         info!("Buttons state: {:?}", buttons);
 //!         ui.label(format!("Clicks: {}", self.counter), "default").await.ok();
 //!         if buttons.clicked("fourth button") {
 //!             self.counter += 1;
-//!         }
+//!         };
+//!         Ok(())
 //!     }
 //! }
 //! ```
@@ -74,20 +75,25 @@ use embedded_graphics::{
     primitives::{Circle, PrimitiveStyle, Rectangle, Styled, Triangle},
     text::{self, Alignment},
 };
-use log::{debug, warn};
+use log::{debug, error, warn};
 use std::{collections::HashMap, sync::Arc};
-use tokio::sync::{
-    mpsc::{self, Sender},
-    oneshot,
-};
 use tokio::{
     sync::Mutex,
     time::{Duration, Instant, sleep},
+};
+use tokio::{
+    sync::{
+        mpsc::{self, Sender},
+        oneshot,
+    },
+    task::JoinHandle,
 };
 /// This module is used to interact with buttons
 pub mod buttons;
 /// This module is used to connect the display
 pub mod display_device;
+/// A module with every supported driver
+pub mod drivers;
 /// This module is used for errors
 pub mod errors;
 /// This module is used for fonts
@@ -95,8 +101,9 @@ pub mod fonts;
 /// An UI module used for creating elements on the screen
 pub mod ui;
 pub use crate::buttons::{Button, ButtonTag, Buttons};
-pub use crate::display_device::{DisplayDevice, Ssd1306Display};
-// use crate::errors::Error;
+pub use crate::display_device::DisplayDevice;
+pub use crate::drivers::ssd1306::Ssd1306Display;
+use crate::errors::Error;
 pub use crate::fonts::Font;
 pub use crate::ui::Ui;
 
@@ -148,13 +155,7 @@ enum Command {
     DrawObject(Object),
     Flush,
     Clear(BinaryColor),
-}
-
-#[allow(dead_code)]
-#[derive(Debug)]
-struct Message {
-    tx: Option<oneshot::Sender<Command>>,
-    command: Command,
+    GetAffectedArea(oneshot::Sender<Option<Rectangle>>),
 }
 
 /// Display info
@@ -283,13 +284,14 @@ pub struct Settings<D: DisplayDevice> {
 
 /// The gui engine
 pub struct Engine<A: App> {
-    tx: Sender<Message>,
+    tx: Sender<Command>,
     delay: Duration,
     app: A,
     colors: Colors,
     fonts: HashMap<&'static str, MonoTextStyle<'static, BinaryColor>>,
     buttons: Arc<Mutex<Arc<Buttons>>>,
     display: Display,
+    tasks: Vec<JoinHandle<()>>,
 }
 
 /// App trait
@@ -301,7 +303,7 @@ pub trait App {
         &mut self,
         ui: &mut Ui,
         buttons: &Buttons,
-    ) -> impl std::future::Future<Output = ()> + Send;
+    ) -> impl std::future::Future<Output = Result<(), Error>> + Send;
 }
 
 impl<A: App> Engine<A> {
@@ -319,42 +321,27 @@ impl<A: App> Engine<A> {
         let is_monochrome = settings.display.is_monochrome();
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
         let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
-        let draw_object = move |object: Object, display: &mut D| {
-            match object {
-                Object::Text(text) => {
-                    text::Text::with_alignment(
-                        &text.text,
-                        text.position,
-                        text.font,
-                        text.alignment,
-                    )
-                    .draw(display)
-                    .ok();
-                }
-                Object::Rectangle(rectangle) => {
-                    rectangle.draw(display).ok();
-                }
-                _ => {}
-            };
-        };
 
-        let (tx, mut rx) = mpsc::channel::<Message>(3);
-        tokio::spawn(async move {
-            while let Some(message) = rx.recv().await {
-                debug!("Got message: {:?}", message);
-                match message.command {
-                    Command::DrawObject(object) => draw_object(object, &mut settings.display),
+        let (tx, mut rx) = mpsc::channel::<Command>(3);
+        let display_task = tokio::spawn(async move {
+            while let Some(command) = rx.recv().await {
+                debug!("Got command: {:?}", command);
+                match command {
+                    Command::DrawObject(object) => Self::draw_object(object, &mut settings.display),
                     Command::Flush => {
                         settings.display.flush().ok();
                     }
                     Command::Clear(color) => {
                         settings.display.clear(color).ok();
                     }
+                    Command::GetAffectedArea(tx) => {
+                        tx.send(settings.display.affected_area()).ok();
+                    }
                 }
             }
         });
 
-        tokio::spawn({
+        let buttons_task = tokio::spawn({
             let shared_buttons_state = Arc::clone(&shared_buttons_state);
             async move {
                 loop {
@@ -390,7 +377,27 @@ impl<A: App> Engine<A> {
                 is_monochrome,
                 framerate: settings.framerate,
             },
+            tasks: vec![display_task, buttons_task],
         }
+    }
+
+    fn draw_object<
+        D: DisplayDevice + DrawTarget<Color = BinaryColor> + std::marker::Send + 'static,
+    >(
+        object: Object,
+        display: &mut D,
+    ) {
+        match object {
+            Object::Text(text) => {
+                text::Text::with_alignment(&text.text, text.position, text.font, text.alignment)
+                    .draw(display)
+                    .ok();
+            }
+            Object::Rectangle(rectangle) => {
+                rectangle.draw(display).ok();
+            }
+            _ => {}
+        };
     }
 
     #[allow(dead_code)]
@@ -410,10 +417,17 @@ impl<A: App> Engine<A> {
             .collect()
     }
 
+    /// Instantly kills every task in the background
+    pub fn exit(&self) {
+        for task in &self.tasks {
+            task.abort();
+        }
+    }
+
     /// Starts a loop which calls update every `1000 / fps`
     ///
-    /// It also clears the screen and flushes it
-    pub async fn start_rendering(&mut self) {
+    /// It also clears the screen (if clear = true) and flushes it
+    pub async fn start_rendering(&mut self, clear: bool) {
         let mut ui = Ui {
             tx: self.tx.clone(),
             fonts: self.fonts.clone(),
@@ -422,20 +436,6 @@ impl<A: App> Engine<A> {
         let mut last_buttons_state: Option<Buttons> = None;
         loop {
             let start_time = Instant::now();
-            self.tx
-                .send(Message {
-                    tx: None,
-                    command: Command::Clear(self.colors.secondary),
-                })
-                .await
-                .ok();
-            /*let mut buttons = match self.get_buttons_state().await {
-                Ok(buttons) => buttons,
-                Err(e) => {
-                    error!("Failed to get buttons, got error: {:?}. Returning empty Buttons", e);
-                    Buttons::default()
-                }
-            };*/
             let arc_buttons = {
                 let mutex = self.buttons.lock().await;
                 Arc::clone(&*mutex)
@@ -458,14 +458,18 @@ impl<A: App> Engine<A> {
                 arc_buttons.copy()
             };
             last_buttons_state = Some(buttons.copy());
-            self.app.update(&mut ui, &buttons).await;
-            self.tx
-                .send(Message {
-                    tx: None,
-                    command: Command::Flush,
-                })
-                .await
-                .ok();
+            if clear {
+                self.tx
+                    .send(Command::Clear(self.colors.secondary))
+                    .await
+                    .ok();
+            };
+            if let Err(e) = self.app.update(&mut ui, &buttons).await {
+                error!("Got error after update: {}. Exiting.", e);
+                self.exit();
+                return;
+            };
+            self.tx.send(Command::Flush).await.ok();
             let update_time = Instant::now() - start_time;
             if update_time > self.delay {
                 warn!("Update took too much! ({} ms)", update_time.as_millis());

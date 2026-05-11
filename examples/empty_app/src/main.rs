@@ -1,6 +1,6 @@
 use embedded_graphics::pixelcolor::BinaryColor;
 use linux_embedded_hal::I2cdev;
-use pegui::{App, Buttons, Colors, Engine, Settings, Ssd1306Display, Ui};
+use pegui::{App, Buttons, Colors, Engine, Settings, Ssd1306Display, Ui, errors::Error};
 use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
 
 #[tokio::main]
@@ -32,14 +32,15 @@ async fn main() {
         app_state,
     )
     .await
-    .start_rendering()
+    .start_rendering(true)
     .await;
 }
 
 struct AppState {}
 
 impl App for AppState {
-    async fn update(&mut self, _ui: &mut Ui, _buttons: &Buttons) {
+    async fn update(&mut self, _ui: &mut Ui, _buttons: &Buttons) -> Result<(), Error> {
         // your code here
+        Ok(())
     }
 }

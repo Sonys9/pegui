@@ -4,7 +4,9 @@ use embedded_graphics::{
 };
 use linux_embedded_hal::I2cdev;
 use log::error;
-use pegui::{App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, Ui};
+use pegui::{
+    App, ButtonTag, Buttons, Colors, Engine, Font, Settings, Ssd1306Display, Ui, errors::Error,
+};
 use rppal::gpio::Gpio;
 use ssd1306::{I2CDisplayInterface, Ssd1306, prelude::*};
 
@@ -60,7 +62,7 @@ async fn main() {
         app_state,
     )
     .await
-    .start_rendering()
+    .start_rendering(true)
     .await;
 }
 
@@ -69,12 +71,13 @@ struct AppState {
 }
 
 impl App for AppState {
-    async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) {
+    async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) -> Result<(), Error> {
         ui.label(format!("Clicks: {}", self.counter), "default")
             .await
             .ok();
         if buttons.clicked("fourth button") {
             self.counter += 1;
         };
+        Ok(())
     }
 }

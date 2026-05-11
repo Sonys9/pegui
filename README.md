@@ -57,7 +57,7 @@ async fn main() {
         },
         buttons,
         app_state
-    ).await.start_rendering().await; // Initializing the engine and starting the render
+    ).await.start_rendering(true).await; // Initializing the engine and starting the render, true is for clearing the screen before every update call
 }
 
 struct AppState {
@@ -65,12 +65,13 @@ struct AppState {
 } // Our app state
 
 impl App for AppState {
-    async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) { // Library calls this function every 1000 / fps milliseconds 
+    async fn update(&mut self, ui: &mut Ui, buttons: &Buttons) -> Error { // Library calls this function every 1000 / fps milliseconds, Error is pegui::errors::Error
         info!("Buttons state: {:?}", buttons);
         ui.label(format!("Clicks: {}", self.counter), "default").await.ok(); // Creating a label with text
         if buttons.clicked("fourth button") { // Checking if the 4th button was clicked
             self.counter += 1;
-        }
+        };
+        Ok(())
     }
 }
 ```

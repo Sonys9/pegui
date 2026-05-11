@@ -1,0 +1,16 @@
+[package]
+name = "label_test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+embedded-graphics = "0.8.2"
+linux-embedded-hal = "0.4.1"
+pegui = { path = "../" }
+rppal = "0.22.1"
+ssd1306 = "0.10.0"
+tokio = { version = "1.52.2", features = ["full"] }
+
+[[test]]
+name = "label_test"
+path = "src/label_test.rs"

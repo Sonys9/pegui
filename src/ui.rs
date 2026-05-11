@@ -1,4 +1,4 @@
-use crate::{Command, Display, Message, Object, Text, errors::Error};
+use crate::{Command, Display, Object, Text, errors::Error};
 use embedded_graphics::{
     geometry::Point,
     mono_font::MonoTextStyle,
@@ -7,11 +7,11 @@ use embedded_graphics::{
     text::Alignment,
 };
 use std::collections::HashMap;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::{mpsc::Sender, oneshot};
 
 /// UI struct, used to draw objects
 pub struct Ui {
-    pub(crate) tx: Sender<Message>,
+    pub(crate) tx: Sender<Command>,
     /// Fonts as hashmap
     ///
     /// You can find needed font like this:
@@ -29,7 +29,7 @@ pub struct Ui {
     /// Display info
     ///
     /// Uses Display structure
-    pub display: Display,
+    pub(crate) display: Display,
 }
 
 impl Ui {
@@ -46,10 +46,7 @@ impl Ui {
     /// ```
     pub async fn text(&mut self, text: Text) -> Result<(), Error> {
         self.tx
-            .send(Message {
-                tx: None,
-                command: Command::DrawObject(Object::Text(text)),
-            })
+            .send(Command::DrawObject(Object::Text(text)))
             .await
             .map_err(|e| {
                 Error::SendError(format!("Failed to send the text to other thread: {}", e))
@@ -72,15 +69,12 @@ impl Ui {
             )));
         };
         self.tx
-            .send(Message {
-                tx: None,
-                command: Command::DrawObject(Object::Text(Text {
-                    text,
-                    position,
-                    alignment: Alignment::Left,
-                    font,
-                })),
-            })
+            .send(Command::DrawObject(Object::Text(Text {
+                text,
+                position,
+                alignment: Alignment::Left,
+                font,
+            })))
             .await
             .map_err(|e| {
                 Error::SendError(format!("Failed to send the text to other thread: {}", e))
@@ -108,10 +102,7 @@ impl Ui {
         rectangle: Styled<Rectangle, PrimitiveStyle<BinaryColor>>,
     ) -> Result<(), Error> {
         self.tx
-            .send(Message {
-                tx: None,
-                command: Command::DrawObject(Object::Rectangle(rectangle)),
-            })
+            .send(Command::DrawObject(Object::Rectangle(rectangle)))
             .await
             .map_err(|e| {
                 Error::SendError(format!(
@@ -120,5 +111,26 @@ impl Ui {
                 ))
             })?;
         Ok(())
+    }
+
+    /// Returns affected area
+    ///
+    /// Only works with MockDisplay!
+    pub async fn affected_area(&mut self) -> Result<Rectangle, Error> {
+        let (channel_tx, channel_rx) = oneshot::channel::<Option<Rectangle>>();
+        self.tx
+            .send(Command::GetAffectedArea(channel_tx))
+            .await
+            .map_err(|e| {
+                Error::SendError(format!("Failed to send the command to other thread: {}", e))
+            })?;
+        match channel_rx.await.map_err(|e| {
+            Error::ReceiveError(format!("Failed to receive the affected area: {}", e))
+        })? {
+            Some(area) => Ok(area),
+            None => Err(Error::ReceiveError(
+                "Failed to receive the affected area (got nothing)".to_string(),
+            )),
+        }
     }
 }

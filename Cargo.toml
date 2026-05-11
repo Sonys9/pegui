@@ -16,7 +16,8 @@ tokio = { version = "1.52.1", features = ["full"] }
 members = [
     ".",
     "examples/empty_app",
-    "examples/clicker"
+    "examples/clicker",
+    "tests"
 ]
 resolver = "2"
 
