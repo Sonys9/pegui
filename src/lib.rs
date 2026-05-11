@@ -1,3 +1,4 @@
+#![no_std]
 #![warn(missing_docs)]
 //! # Pi Easy GUI (Pegui)
 //!
@@ -75,19 +76,10 @@ use embedded_graphics::{
     primitives::{Circle, PrimitiveStyle, Rectangle, Styled, Triangle},
     text::{self, Alignment},
 };
+use embassy_executor::Spawner;
+use embassy_sync::channel::Channel;
+use embassy_time::{Duration, Timer};
 use log::{debug, error, warn};
-use std::{collections::HashMap, sync::Arc};
-use tokio::{
-    sync::Mutex,
-    time::{Duration, Instant, sleep},
-};
-use tokio::{
-    sync::{
-        mpsc::{self, Sender},
-        oneshot,
-    },
-    task::JoinHandle,
-};
 /// This module is used to interact with buttons
 pub mod buttons;
 /// This module is used to connect the display
@@ -132,7 +124,7 @@ pub use crate::ui::Ui;
 #[derive(Debug)]
 pub struct Text {
     /// Text
-    pub text: String,
+    pub text: &'static str,
     /// Text position, it's a point from `embedded_graphics_core::geometry::point`: struct `{ x: i32, y: i32 }`
     pub position: Point,
     /// Text alignment, it' an alignment from `embedded_graphics::text::Alignment`: enum `{ Left, Center, Right }`, works like CSS alignment
@@ -322,24 +314,8 @@ impl<A: App> Engine<A> {
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
         let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
 
-        let (tx, mut rx) = mpsc::channel::<Command>(3);
-        let display_task = tokio::spawn(async move {
-            while let Some(command) = rx.recv().await {
-                debug!("Got command: {:?}", command);
-                match command {
-                    Command::DrawObject(object) => Self::draw_object(object, &mut settings.display),
-                    Command::Flush => {
-                        settings.display.flush().ok();
-                    }
-                    Command::Clear(color) => {
-                        settings.display.clear(color).ok();
-                    }
-                    Command::GetAffectedArea(tx) => {
-                        tx.send(settings.display.affected_area()).ok();
-                    }
-                }
-            }
-        });
+        let (tx, mut rx) = Channel::<Command>(3);
+        let display_task = tokio::spawn(async move );
 
         let buttons_task = tokio::spawn({
             let shared_buttons_state = Arc::clone(&shared_buttons_state);
@@ -378,6 +354,24 @@ impl<A: App> Engine<A> {
                 framerate: settings.framerate,
             },
             tasks: vec![display_task, buttons_task],
+        }
+    }
+    
+    async fn display_loop() {
+        while let Some(command) = rx.recv().await {
+            debug!("Got command: {:?}", command);
+            match command {
+                Command::DrawObject(object) => Self::draw_object(object, &mut settings.display),
+                Command::Flush => {
+                    settings.display.flush().ok();
+                }
+                Command::Clear(color) => {
+                    settings.display.clear(color).ok();
+                }
+                Command::GetAffectedArea(tx) => {
+                    tx.send(settings.display.affected_area()).ok();
+                }
+            }
         }
     }
 
