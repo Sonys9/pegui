@@ -314,7 +314,7 @@ impl<A: App> Engine<A> {
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
         let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
 
-        let (tx, mut rx) = Channel::<Command>(3);
+        let (tx, mut rx) = Channel::<Command>(3);;
         let display_task = tokio::spawn(async move );
 
         let buttons_task = tokio::spawn({
