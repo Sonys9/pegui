@@ -10,9 +10,3 @@ pegui = { path = "../../" }
 rppal = "0.22.1"
 ssd1306 = "0.10.0"
 tokio = { version = "1.52.2", features = ["full"] }
-
-[profile.release] # Some optimizations for the binary size
-opt-level = 's'
-lto = "fat"
-codegen-units = 1
-strip = true
