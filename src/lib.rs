@@ -77,8 +77,10 @@ use embedded_graphics::{
     text::{self, Alignment},
 };
 use embassy_executor::Spawner;
-use embassy_sync::channel::Channel;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use embassy_time::{Duration, Timer};
+use embassy_sync::mutex::Mutex;
+use static_cell::StaticCell;
 use log::{debug, error, warn};
 /// This module is used to interact with buttons
 pub mod buttons;
@@ -98,6 +100,8 @@ pub use crate::drivers::ssd1306::Ssd1306Display;
 use crate::errors::Error;
 pub use crate::fonts::Font;
 pub use crate::ui::Ui;
+
+static SHARED_BUTTONS_STATE: StaticCell<Mutex<CriticalSectionRawMutex, Command>> = StaticCell::new();
 
 /// A structure used for creating a text
 ///
@@ -312,9 +316,8 @@ impl<A: App> Engine<A> {
         let bounding_box = settings.display.bounding_box();
         let is_monochrome = settings.display.is_monochrome();
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
-        let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
 
-        let (tx, mut rx) = Channel::<Command>(3);
+        let channel = Channel::new();
         let display_task = tokio::spawn(async move );
 
         let buttons_task = tokio::spawn({
