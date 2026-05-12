@@ -1,4 +1,4 @@
-use rppal::gpio::InputPin;
+use alloc::vec::Vec;
 
 /// Button with a tag
 pub struct ButtonTag {

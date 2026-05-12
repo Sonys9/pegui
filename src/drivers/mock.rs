@@ -1,4 +1,5 @@
 use crate::DisplayDevice;
+use alloc::{format, string::String};
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{OriginDimensions, Size},

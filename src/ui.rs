@@ -1,4 +1,5 @@
 use crate::{Command, Display, Object, Text, errors::Error};
+use alloc::{format, string::{String, ToString}};
 use embedded_graphics::{
     geometry::Point,
     mono_font::MonoTextStyle,
@@ -6,8 +7,7 @@ use embedded_graphics::{
     primitives::{PrimitiveStyle, Rectangle, Styled},
     text::Alignment,
 };
-use std::collections::HashMap;
-use tokio::sync::{mpsc::Sender, oneshot};
+use hashbrown::HashMap;
 
 /// UI struct, used to draw objects
 pub struct Ui {

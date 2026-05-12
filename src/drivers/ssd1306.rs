@@ -1,10 +1,10 @@
 use crate::DisplayDevice;
+use alloc::{format, string::String};
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{OriginDimensions, Size},
     pixelcolor::BinaryColor,
 };
-use linux_embedded_hal::I2cdev;
 use ssd1306::{Ssd1306, prelude::I2CInterface};
 
 impl<T: ssd1306::prelude::DisplaySize> OriginDimensions for Ssd1306Display<T> {

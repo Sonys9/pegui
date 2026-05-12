@@ -13,7 +13,6 @@
 //! ## Quick start
 //!
 //! ```rust,no_run
-//! # use std::env;
 //! # use embedded_graphics::{mono_font::{MonoTextStyle, ascii::FONT_6X10}, pixelcolor::BinaryColor};
 //! # use linux_embedded_hal::I2cdev;
 //! # use log::{error, info};
@@ -68,7 +67,7 @@
 //! ```
 
 extern crate alloc;
-use alloc::{string::String, vec::Vec};
+use alloc::{string::String, sync::Arc, vec::Vec};
 use embedded_graphics::{
     Drawable,
     geometry::Size,
@@ -80,11 +79,13 @@ use embedded_graphics::{
 };
 use embassy_executor::Spawner;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
-use embassy_time::{Duration, Timer};
+use embassy_time::{Duration, Instant, Timer};
 use embassy_sync::mutex::Mutex;
+use hashbrown::HashMap;
 use static_cell::StaticCell;
 use log::{debug, error, warn};
 use wee_alloc::WeeAlloc;
+use core::marker::Send;
 /// This module is used to interact with buttons
 pub mod buttons;
 /// This module is used to connect the display
@@ -291,7 +292,7 @@ pub struct Engine<A: App> {
     app: A,
     colors: Colors,
     fonts: HashMap<&'static str, MonoTextStyle<'static, BinaryColor>>,
-    buttons: Arc<Mutex<Arc<Buttons>>>,
+    buttons: Arc<Mutex<CriticalSectionRawMutex, Buttons>>,
     display: Display,
     tasks: Vec<JoinHandle<()>>,
 }
@@ -305,7 +306,7 @@ pub trait App {
         &mut self,
         ui: &mut Ui,
         buttons: &Buttons,
-    ) -> impl std::future::Future<Output = Result<(), Error>> + Send;
+    ) -> impl Future<Output = Result<(), Error>> + Send;
 }
 
 impl<A: App> Engine<A> {
@@ -313,7 +314,7 @@ impl<A: App> Engine<A> {
     ///
     /// You should provide settings, buttons and an app state
     pub async fn new<
-        D: DisplayDevice + DrawTarget<Color = BinaryColor> + std::marker::Send + 'static,
+        D: DisplayDevice + DrawTarget<Color = BinaryColor> + Send + 'static,
     >(
         mut settings: Settings<D>,
         buttons: Vec<ButtonTag>,
@@ -385,7 +386,7 @@ impl<A: App> Engine<A> {
     }
 
     fn draw_object<
-        D: DisplayDevice + DrawTarget<Color = BinaryColor> + std::marker::Send + 'static,
+        D: DisplayDevice + DrawTarget<Color = BinaryColor> + Send + 'static,
     >(
         object: Object,
         display: &mut D,
@@ -479,7 +480,7 @@ impl<A: App> Engine<A> {
                 continue;
             };
             debug!("Update took {} ms", update_time.as_millis());
-            sleep(self.delay - update_time).await;
+            Timer::after(self.delay - update_time).await;
         }
     }
 }
