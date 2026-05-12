@@ -67,6 +67,8 @@
 //! }
 //! ```
 
+extern crate alloc;
+use alloc::{string::String, vec::Vec};
 use embedded_graphics::{
     Drawable,
     geometry::Size,
@@ -132,7 +134,7 @@ static SHARED_BUTTONS_STATE: StaticCell<Mutex<CriticalSectionRawMutex, Command>>
 #[derive(Debug)]
 pub struct Text {
     /// Text
-    pub text: &'static str,
+    pub text: String,
     /// Text position, it's a point from `embedded_graphics_core::geometry::point`: struct `{ x: i32, y: i32 }`
     pub position: Point,
     /// Text alignment, it' an alignment from `embedded_graphics::text::Alignment`: enum `{ Left, Center, Right }`, works like CSS alignment
