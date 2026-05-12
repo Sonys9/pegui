@@ -15,6 +15,7 @@ log = "0.4.29"
 ssd1306 = "0.10.0"
 static_cell = "2.1.1"
 thiserror = "2.0.18"
+wee_alloc = "0.4.5"
 
 [workspace]
 members = [

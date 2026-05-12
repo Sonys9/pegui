@@ -82,6 +82,7 @@ use embassy_time::{Duration, Timer};
 use embassy_sync::mutex::Mutex;
 use static_cell::StaticCell;
 use log::{debug, error, warn};
+use wee_alloc::WeeAlloc;
 /// This module is used to interact with buttons
 pub mod buttons;
 /// This module is used to connect the display
@@ -100,6 +101,9 @@ pub use crate::drivers::ssd1306::Ssd1306Display;
 use crate::errors::Error;
 pub use crate::fonts::Font;
 pub use crate::ui::Ui;
+
+#[global_allocator]
+static ALLOCATOR: WeeAlloc = WeeAlloc::INIT;
 
 static SHARED_BUTTONS_STATE: StaticCell<Mutex<CriticalSectionRawMutex, Command>> = StaticCell::new();
 
