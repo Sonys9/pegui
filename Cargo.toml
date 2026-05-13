@@ -5,6 +5,7 @@ edition = "2024"
 license = "GPL-3.0-only"
 
 [dependencies]
+display-interface = "0.5.0"
 embassy = "0.0.0"
 embassy-executor = "0.10.0"
 embassy-sync = "0.8.0"
@@ -13,7 +14,7 @@ embedded-graphics = "0.8.2"
 embedded-hal-async = "1.0.0"
 hashbrown = "0.17.1"
 log = "0.4.29"
-ssd1306 = "0.10.0"
+ssd1306 = { version = "0.10.0", features = ["async"] }
 static_cell = "2.1.1"
 thiserror = "2.0.18"
 wee_alloc = "0.4.5"

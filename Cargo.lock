@@ -762,6 +762,7 @@ dependencies = [
 name = "pegui"
 version = "0.1.0"
 dependencies = [
+ "display-interface",
  "embassy",
  "embassy-executor",
  "embassy-sync",
@@ -981,6 +982,7 @@ dependencies = [
  "display-interface-spi",
  "embedded-graphics-core",
  "embedded-hal 1.0.0",
+ "embedded-hal-async",
  "maybe-async-cfg",
 ]
 

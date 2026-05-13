@@ -37,7 +37,7 @@ pub struct Mock {
 
 impl DisplayDevice for Mock {
     type Error = String;
-    fn flush(&mut self) -> Result<(), Self::Error> {
+    async fn flush(&mut self) -> Result<(), Self::Error> {
         // We don't need that
         Ok(())
     }

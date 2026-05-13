@@ -78,7 +78,10 @@ use embedded_graphics::{
     text::{self, Alignment},
 };
 use embassy_executor::Spawner;
-use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
+use embassy_sync::{
+    blocking_mutex::raw::CriticalSectionRawMutex, 
+    //channel::{Channel, Sender, Receiver}
+};
 use embassy_time::{Duration, Instant, Timer};
 use embassy_sync::mutex::Mutex;
 use hashbrown::HashMap;
@@ -108,7 +111,7 @@ pub use crate::ui::Ui;
 #[global_allocator]
 static ALLOCATOR: WeeAlloc = WeeAlloc::INIT;
 
-static SHARED_BUTTONS_STATE: StaticCell<Mutex<CriticalSectionRawMutex, Command>> = StaticCell::new();
+type NewCommand = StaticCell<Mutex<CriticalSectionRawMutex, Command>>;
 
 /// A structure used for creating a text
 ///
@@ -324,7 +327,6 @@ impl<A: App> Engine<A> {
         let is_monochrome = settings.display.is_monochrome();
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
 
-        let channel = Channel::new();
         let display_task = tokio::spawn(async move );
 
         let buttons_task = tokio::spawn({
