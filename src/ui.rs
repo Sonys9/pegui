@@ -48,10 +48,10 @@ impl Ui {
     pub async fn text(&mut self, text: Text) -> Result<(), Error> {
         self.tx
             .send(Command::DrawObject(Object::Text(text)))
-            .await
-            .map_err(|e| {
-                Error::SendError(format!("Failed to send the text to other thread: {}", e))
-            })?;
+            .await; // it does not throws any error now!!!!!! i like it
+            //.map_err(|e| {
+            //    Error::SendError(format!("Failed to send the text to other thread: {}", e))
+            //})?;
         Ok(())
     }
 
@@ -76,10 +76,10 @@ impl Ui {
                 alignment: Alignment::Left,
                 font,
             })))
-            .await
-            .map_err(|e| {
-                Error::SendError(format!("Failed to send the text to other thread: {}", e))
-            })?;
+            .await; // same here
+            //.map_err(|e| {
+            //    Error::SendError(format!("Failed to send the text to other thread: {}", e))
+            //})?;
         Ok(())
     }
 
@@ -104,13 +104,13 @@ impl Ui {
     ) -> Result<(), Error> {
         self.tx
             .send(Command::DrawObject(Object::Rectangle(rectangle)))
-            .await
-            .map_err(|e| {
-                Error::SendError(format!(
-                    "Failed to send the rectangle to other thread: {}",
-                    e
-                ))
-            })?;
+            .await; // and here!!!!!
+            //.map_err(|e| {
+            //    Error::SendError(format!(
+            //        "Failed to send the rectangle to other thread: {}",
+            //        e
+            //    ))
+            //})?;
         Ok(())
     }
 
@@ -121,10 +121,10 @@ impl Ui {
         let (channel_tx, channel_rx) = oneshot::channel::<Option<Rectangle>>();
         self.tx
             .send(Command::GetAffectedArea(channel_tx))
-            .await
-            .map_err(|e| {
-                Error::SendError(format!("Failed to send the command to other thread: {}", e))
-            })?;
+            .await; // and here!!!
+            //.map_err(|e| {
+            //    Error::SendError(format!("Failed to send the command to other thread: {}", e))
+            //})?;
         match channel_rx.await.map_err(|e| {
             Error::ReceiveError(format!("Failed to receive the affected area: {}", e))
         })? {

@@ -79,7 +79,7 @@ use embedded_graphics::{
 };
 use embassy_executor::Spawner;
 use embassy_sync::{
-    blocking_mutex::raw::CriticalSectionRawMutex, channel::{Channel, Sender}, 
+    blocking_mutex::raw::CriticalSectionRawMutex, channel::{Channel, Sender}, signal::Signal, 
     //channel::{Channel, Sender, Receiver}
 };
 use embassy_time::{Duration, Instant, Timer};
@@ -112,6 +112,7 @@ pub use crate::ui::Ui;
 static ALLOCATOR: WeeAlloc = WeeAlloc::INIT;
 
 static CHANNEL: Channel<CriticalSectionRawMutex, Command, 4> = Channel::new();
+static ONESHOT: Signal<CriticalSectionRawMutex, Result<(), ()>> = Signal::new();
 
 /// A structure used for creating a text
 ///
