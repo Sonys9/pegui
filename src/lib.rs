@@ -68,6 +68,7 @@
 
 extern crate alloc;
 use alloc::{string::String, sync::Arc, vec::Vec};
+use embedded_alloc::TlsfHeap;
 use embedded_graphics::{
     Drawable,
     geometry::Size,
@@ -79,15 +80,15 @@ use embedded_graphics::{
 };
 use embassy_executor::Spawner;
 use embassy_sync::{
-    blocking_mutex::raw::CriticalSectionRawMutex, channel::{Channel, Sender}, signal::Signal, 
+    blocking_mutex::raw::CriticalSectionRawMutex, 
     //channel::{Channel, Sender, Receiver}
 };
 use embassy_time::{Duration, Instant, Timer};
 use embassy_sync::mutex::Mutex;
+use flume::{Sender, bounded};
 use hashbrown::HashMap;
 use static_cell::StaticCell;
 use log::{debug, error, warn};
-use wee_alloc::WeeAlloc;
 use core::marker::Send;
 /// This module is used to interact with buttons
 pub mod buttons;
@@ -109,10 +110,7 @@ pub use crate::fonts::Font;
 pub use crate::ui::Ui;
 
 #[global_allocator]
-static ALLOCATOR: WeeAlloc = WeeAlloc::INIT;
-
-static CHANNEL: Channel<CriticalSectionRawMutex, Command, 4> = Channel::new();
-static ONESHOT: Signal<CriticalSectionRawMutex, Result<(), ()>> = Signal::new();
+static ALLOCATOR: TlsfHeap = TlsfHeap::empty();
 
 /// A structure used for creating a text
 ///
@@ -291,7 +289,7 @@ pub struct Settings<D: DisplayDevice> {
 
 /// The gui engine
 pub struct Engine<A: App> {
-    tx: Sender<'static, CriticalSectionRawMutex, Command, 4>,
+    tx: Sender<Command>,
     delay: Duration,
     app: A,
     colors: Colors,
@@ -328,6 +326,7 @@ impl<A: App> Engine<A> {
         let is_monochrome = settings.display.is_monochrome();
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
 
+        let (tx, rx) = bounded::<Command>(4);
         let display_task = tokio::spawn(async move );
 
         let buttons_task = tokio::spawn({
@@ -468,15 +467,14 @@ impl<A: App> Engine<A> {
             if clear {
                 self.tx
                     .send(Command::Clear(self.colors.secondary))
-                    .await
-                    .ok();
+                    .await;
             };
             if let Err(e) = self.app.update(&mut ui, &buttons).await {
                 error!("Got error after update: {}. Exiting.", e);
                 self.exit();
                 return;
             };
-            self.tx.send(Command::Flush).await.ok();
+            self.tx.send(Command::Flush).await;
             let update_time = Instant::now() - start_time;
             if update_time > self.delay {
                 warn!("Update took too much! ({} ms)", update_time.as_millis());

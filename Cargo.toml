@@ -17,9 +17,9 @@ log = "0.4.29"
 ssd1306 = { version = "0.10.0", features = ["async"] }
 static_cell = "2.1.1"
 thiserror = "2.0.18"
-wee_alloc = "0.4.5"
 flume = { version = "0.11", default-features = false, features = ["async"] }
 futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+embedded-alloc = { version = "0.7.0", features = ["tlsf"] }
 
 [workspace]
 members = [
