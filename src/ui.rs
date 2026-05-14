@@ -1,5 +1,6 @@
 use crate::{Command, Display, Object, Text, errors::Error};
 use alloc::{format, string::{String, ToString}};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Sender};
 use embedded_graphics::{
     geometry::Point,
     mono_font::MonoTextStyle,
@@ -11,7 +12,7 @@ use hashbrown::HashMap;
 
 /// UI struct, used to draw objects
 pub struct Ui {
-    pub(crate) tx: Sender<Command>,
+    pub(crate) tx: Sender<'static, CriticalSectionRawMutex, Command, 4>,
     /// Fonts as hashmap
     ///
     /// You can find needed font like this:

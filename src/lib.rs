@@ -79,7 +79,7 @@ use embedded_graphics::{
 };
 use embassy_executor::Spawner;
 use embassy_sync::{
-    blocking_mutex::raw::CriticalSectionRawMutex, 
+    blocking_mutex::raw::CriticalSectionRawMutex, channel::{Channel, Sender}, 
     //channel::{Channel, Sender, Receiver}
 };
 use embassy_time::{Duration, Instant, Timer};
@@ -111,7 +111,7 @@ pub use crate::ui::Ui;
 #[global_allocator]
 static ALLOCATOR: WeeAlloc = WeeAlloc::INIT;
 
-type NewCommand = StaticCell<Mutex<CriticalSectionRawMutex, Command>>;
+static CHANNEL: Channel<CriticalSectionRawMutex, Command, 4> = Channel::new();
 
 /// A structure used for creating a text
 ///
@@ -290,7 +290,7 @@ pub struct Settings<D: DisplayDevice> {
 
 /// The gui engine
 pub struct Engine<A: App> {
-    tx: Sender<Command>,
+    tx: Sender<'static, CriticalSectionRawMutex, Command, 4>,
     delay: Duration,
     app: A,
     colors: Colors,
