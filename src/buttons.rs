@@ -50,7 +50,7 @@ impl Buttons {
     /// Copies the structure
     pub fn copy(&self) -> Self {
         Self {
-            buttons: self.buttons.to_vec(),
+            buttons: self.buttons.clone(),
         }
     }
 

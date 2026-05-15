@@ -85,7 +85,7 @@ use embassy_sync::{
 };
 use embassy_time::{Duration, Instant, Timer};
 use embassy_sync::mutex::Mutex;
-use flume::{Sender, bounded};
+use flume::{Receiver, Sender, bounded};
 use hashbrown::HashMap;
 use static_cell::StaticCell;
 use log::{debug, error, warn};
@@ -160,7 +160,7 @@ enum Command {
     DrawObject(Object),
     Flush,
     Clear(BinaryColor),
-    GetAffectedArea(oneshot::Sender<Option<Rectangle>>),
+    GetAffectedArea(Sender<Option<Rectangle>>),
 }
 
 /// Display info
@@ -325,15 +325,14 @@ impl<A: App> Engine<A> {
         let bounding_box = settings.display.bounding_box();
         let is_monochrome = settings.display.is_monochrome();
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
+        let shared_buttons_state = Arc::new(Mutex::new(Buttons::default()));
 
         let (tx, rx) = bounded::<Command>(4);
-        let display_task = tokio::spawn(async move );
-
-        let buttons_task = tokio::spawn({
+        /*let buttons_task = tokio::spawn({
             let shared_buttons_state = Arc::clone(&shared_buttons_state);
             async move {
                 loop {
-                    let buttons_state = Arc::new(Buttons {
+                    let buttons_state = Buttons {
                         buttons: buttons
                             .iter()
                             .map(|button| Button {
@@ -343,14 +342,14 @@ impl<A: App> Engine<A> {
                                 clicked: false,
                             })
                             .collect(),
-                    });
+                    };
                     {
                         *shared_buttons_state.lock().await = buttons_state;
                     };
                     sleep(delay).await;
                 }
             }
-        });
+        });*/
 
         Self {
             tx,
@@ -365,23 +364,28 @@ impl<A: App> Engine<A> {
                 is_monochrome,
                 framerate: settings.framerate,
             },
-            tasks: vec![display_task, buttons_task],
+            tasks: [display_task, buttons_task].to_vec(),
         }
     }
     
-    async fn display_loop() {
-        while let Some(command) = rx.recv().await {
+    pub async fn display_loop<
+        D: DisplayDevice + DrawTarget<Color = BinaryColor> + Send + 'static
+    >(rx: Receiver<Command>, display: &mut D) -> Result<Command, flume::RecvError> {
+        loop {
+            let command = rx.recv_async().await?;
             debug!("Got command: {:?}", command);
             match command {
-                Command::DrawObject(object) => Self::draw_object(object, &mut settings.display),
+                Command::DrawObject(object) => Self::draw_object(object, display),
                 Command::Flush => {
-                    settings.display.flush().ok();
+                    display.flush().await.ok();
                 }
                 Command::Clear(color) => {
-                    settings.display.clear(color).ok();
+                    display.clear(color).ok();
                 }
                 Command::GetAffectedArea(tx) => {
-                    tx.send(settings.display.affected_area()).ok();
+                    tx.send_async(display.affected_area())
+                        .await
+                        .ok();
                 }
             }
         }
@@ -403,14 +407,6 @@ impl<A: App> Engine<A> {
                 rectangle.draw(display).ok();
             }
             _ => {}
-        };
-    }
-
-    #[allow(dead_code)]
-    fn send_response(sender: Option<oneshot::Sender<Command>>, message: Command) {
-        if let Some(sender) = sender {
-            debug!("Sending {:?}", message);
-            sender.send(message).ok();
         };
     }
 
@@ -442,13 +438,13 @@ impl<A: App> Engine<A> {
         let mut last_buttons_state: Option<Buttons> = None;
         loop {
             let start_time = Instant::now();
-            let arc_buttons = {
+            let buttons = {
                 let mutex = self.buttons.lock().await;
-                Arc::clone(&*mutex)
+                (*mutex).copy()
             };
             let buttons = if let Some(last_buttons_state) = last_buttons_state {
                 Buttons {
-                    buttons: arc_buttons
+                    buttons: buttons
                         .buttons
                         .iter()
                         .map(|button| {
@@ -461,12 +457,12 @@ impl<A: App> Engine<A> {
                         .collect(),
                 }
             } else {
-                arc_buttons.copy()
+                buttons.copy()
             };
             last_buttons_state = Some(buttons.copy());
             if clear {
                 self.tx
-                    .send(Command::Clear(self.colors.secondary))
+                    .send_async(Command::Clear(self.colors.secondary))
                     .await;
             };
             if let Err(e) = self.app.update(&mut ui, &buttons).await {
@@ -474,7 +470,7 @@ impl<A: App> Engine<A> {
                 self.exit();
                 return;
             };
-            self.tx.send(Command::Flush).await;
+            self.tx.send_async(Command::Flush).await;
             let update_time = Instant::now() - start_time;
             if update_time > self.delay {
                 warn!("Update took too much! ({} ms)", update_time.as_millis());
