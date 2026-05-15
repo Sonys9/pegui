@@ -1,3 +1,4 @@
+#![no_std]
 #![warn(missing_docs)]
 //! # Pi Easy GUI (Pegui)
 //!
@@ -12,7 +13,6 @@
 //! ## Quick start
 //!
 //! ```rust,no_run
-//! # use std::env;
 //! # use embedded_graphics::{mono_font::{MonoTextStyle, ascii::FONT_6X10}, pixelcolor::BinaryColor};
 //! # use linux_embedded_hal::I2cdev;
 //! # use log::{error, info};
@@ -66,6 +66,9 @@
 //! }
 //! ```
 
+extern crate alloc;
+use alloc::{string::String, sync::Arc, vec::Vec};
+use embedded_alloc::TlsfHeap;
 use embedded_graphics::{
     Drawable,
     geometry::Size,
@@ -75,19 +78,18 @@ use embedded_graphics::{
     primitives::{Circle, PrimitiveStyle, Rectangle, Styled, Triangle},
     text::{self, Alignment},
 };
+use embassy_executor::Spawner;
+use embassy_sync::{
+    blocking_mutex::raw::CriticalSectionRawMutex, 
+    //channel::{Channel, Sender, Receiver}
+};
+use embassy_time::{Duration, Instant, Timer};
+use embassy_sync::mutex::Mutex;
+use flume::{Receiver, Sender, bounded};
+use hashbrown::HashMap;
+use static_cell::StaticCell;
 use log::{debug, error, warn};
-use std::{collections::HashMap, sync::Arc};
-use tokio::{
-    sync::Mutex,
-    time::{Duration, Instant, sleep},
-};
-use tokio::{
-    sync::{
-        mpsc::{self, Sender},
-        oneshot,
-    },
-    task::JoinHandle,
-};
+use core::marker::Send;
 /// This module is used to interact with buttons
 pub mod buttons;
 /// This module is used to connect the display
@@ -106,6 +108,9 @@ pub use crate::drivers::ssd1306::Ssd1306Display;
 use crate::errors::Error;
 pub use crate::fonts::Font;
 pub use crate::ui::Ui;
+
+#[global_allocator]
+static ALLOCATOR: TlsfHeap = TlsfHeap::empty();
 
 /// A structure used for creating a text
 ///
@@ -155,7 +160,7 @@ enum Command {
     DrawObject(Object),
     Flush,
     Clear(BinaryColor),
-    GetAffectedArea(oneshot::Sender<Option<Rectangle>>),
+    GetAffectedArea(Sender<Option<Rectangle>>),
 }
 
 /// Display info
@@ -289,7 +294,7 @@ pub struct Engine<A: App> {
     app: A,
     colors: Colors,
     fonts: HashMap<&'static str, MonoTextStyle<'static, BinaryColor>>,
-    buttons: Arc<Mutex<Arc<Buttons>>>,
+    buttons: Arc<Mutex<CriticalSectionRawMutex, Buttons>>,
     display: Display,
     tasks: Vec<JoinHandle<()>>,
 }
@@ -303,7 +308,7 @@ pub trait App {
         &mut self,
         ui: &mut Ui,
         buttons: &Buttons,
-    ) -> impl std::future::Future<Output = Result<(), Error>> + Send;
+    ) -> impl Future<Output = Result<(), Error>> + Send;
 }
 
 impl<A: App> Engine<A> {
@@ -311,7 +316,7 @@ impl<A: App> Engine<A> {
     ///
     /// You should provide settings, buttons and an app state
     pub async fn new<
-        D: DisplayDevice + DrawTarget<Color = BinaryColor> + std::marker::Send + 'static,
+        D: DisplayDevice + DrawTarget<Color = BinaryColor> + Send + 'static,
     >(
         mut settings: Settings<D>,
         buttons: Vec<ButtonTag>,
@@ -320,32 +325,14 @@ impl<A: App> Engine<A> {
         let bounding_box = settings.display.bounding_box();
         let is_monochrome = settings.display.is_monochrome();
         let delay = Duration::from_millis(1000 / settings.framerate as u64);
-        let shared_buttons_state = Arc::new(Mutex::new(Arc::new(Buttons::default())));
+        let shared_buttons_state = Arc::new(Mutex::new(Buttons::default()));
 
-        let (tx, mut rx) = mpsc::channel::<Command>(3);
-        let display_task = tokio::spawn(async move {
-            while let Some(command) = rx.recv().await {
-                debug!("Got command: {:?}", command);
-                match command {
-                    Command::DrawObject(object) => Self::draw_object(object, &mut settings.display),
-                    Command::Flush => {
-                        settings.display.flush().ok();
-                    }
-                    Command::Clear(color) => {
-                        settings.display.clear(color).ok();
-                    }
-                    Command::GetAffectedArea(tx) => {
-                        tx.send(settings.display.affected_area()).ok();
-                    }
-                }
-            }
-        });
-
-        let buttons_task = tokio::spawn({
+        let (tx, rx) = bounded::<Command>(4);
+        /*let buttons_task = tokio::spawn({
             let shared_buttons_state = Arc::clone(&shared_buttons_state);
             async move {
                 loop {
-                    let buttons_state = Arc::new(Buttons {
+                    let buttons_state = Buttons {
                         buttons: buttons
                             .iter()
                             .map(|button| Button {
@@ -355,14 +342,14 @@ impl<A: App> Engine<A> {
                                 clicked: false,
                             })
                             .collect(),
-                    });
+                    };
                     {
                         *shared_buttons_state.lock().await = buttons_state;
                     };
                     sleep(delay).await;
                 }
             }
-        });
+        });*/
 
         Self {
             tx,
@@ -377,12 +364,35 @@ impl<A: App> Engine<A> {
                 is_monochrome,
                 framerate: settings.framerate,
             },
-            tasks: vec![display_task, buttons_task],
+            tasks: [display_task, buttons_task].to_vec(),
+        }
+    }
+    
+    pub async fn display_loop<
+        D: DisplayDevice + DrawTarget<Color = BinaryColor> + Send + 'static
+    >(rx: Receiver<Command>, display: &mut D) -> Result<Command, flume::RecvError> {
+        loop {
+            let command = rx.recv_async().await?;
+            debug!("Got command: {:?}", command);
+            match command {
+                Command::DrawObject(object) => Self::draw_object(object, display),
+                Command::Flush => {
+                    display.flush().await.ok();
+                }
+                Command::Clear(color) => {
+                    display.clear(color).ok();
+                }
+                Command::GetAffectedArea(tx) => {
+                    tx.send_async(display.affected_area())
+                        .await
+                        .ok();
+                }
+            }
         }
     }
 
     fn draw_object<
-        D: DisplayDevice + DrawTarget<Color = BinaryColor> + std::marker::Send + 'static,
+        D: DisplayDevice + DrawTarget<Color = BinaryColor> + Send + 'static,
     >(
         object: Object,
         display: &mut D,
@@ -397,14 +407,6 @@ impl<A: App> Engine<A> {
                 rectangle.draw(display).ok();
             }
             _ => {}
-        };
-    }
-
-    #[allow(dead_code)]
-    fn send_response(sender: Option<oneshot::Sender<Command>>, message: Command) {
-        if let Some(sender) = sender {
-            debug!("Sending {:?}", message);
-            sender.send(message).ok();
         };
     }
 
@@ -436,13 +438,13 @@ impl<A: App> Engine<A> {
         let mut last_buttons_state: Option<Buttons> = None;
         loop {
             let start_time = Instant::now();
-            let arc_buttons = {
+            let buttons = {
                 let mutex = self.buttons.lock().await;
-                Arc::clone(&*mutex)
+                (*mutex).copy()
             };
             let buttons = if let Some(last_buttons_state) = last_buttons_state {
                 Buttons {
-                    buttons: arc_buttons
+                    buttons: buttons
                         .buttons
                         .iter()
                         .map(|button| {
@@ -455,28 +457,27 @@ impl<A: App> Engine<A> {
                         .collect(),
                 }
             } else {
-                arc_buttons.copy()
+                buttons.copy()
             };
             last_buttons_state = Some(buttons.copy());
             if clear {
                 self.tx
-                    .send(Command::Clear(self.colors.secondary))
-                    .await
-                    .ok();
+                    .send_async(Command::Clear(self.colors.secondary))
+                    .await;
             };
             if let Err(e) = self.app.update(&mut ui, &buttons).await {
                 error!("Got error after update: {}. Exiting.", e);
                 self.exit();
                 return;
             };
-            self.tx.send(Command::Flush).await.ok();
+            self.tx.send_async(Command::Flush).await;
             let update_time = Instant::now() - start_time;
             if update_time > self.delay {
                 warn!("Update took too much! ({} ms)", update_time.as_millis());
                 continue;
             };
             debug!("Update took {} ms", update_time.as_millis());
-            sleep(self.delay - update_time).await;
+            Timer::after(self.delay - update_time).await;
         }
     }
 }

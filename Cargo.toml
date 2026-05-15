@@ -5,13 +5,21 @@ edition = "2024"
 license = "GPL-3.0-only"
 
 [dependencies]
+display-interface = "0.5.0"
+embassy = "0.0.0"
+embassy-executor = "0.10.0"
+embassy-sync = "0.8.0"
+embassy-time = "0.5.1"
 embedded-graphics = "0.8.2"
-linux-embedded-hal = "0.4.1"
+embedded-hal-async = "1.0.0"
+hashbrown = "0.17.1"
 log = "0.4.29"
-rppal = "0.22.1"
-ssd1306 = "0.10.0"
+ssd1306 = { version = "0.10.0", features = ["async"] }
+static_cell = "2.1.1"
 thiserror = "2.0.18"
-tokio = { version = "1.52.1", features = ["full"] }
+flume = { version = "0.11", default-features = false, features = ["async"] }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
+embedded-alloc = { version = "0.7.0", features = ["tlsf"] }
 
 [workspace]
 members = [

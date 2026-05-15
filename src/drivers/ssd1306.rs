@@ -1,19 +1,20 @@
 use crate::DisplayDevice;
+use alloc::{format, string::String};
+use display_interface::{AsyncWriteOnlyDataCommand};
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{OriginDimensions, Size},
     pixelcolor::BinaryColor,
 };
-use linux_embedded_hal::I2cdev;
-use ssd1306::{Ssd1306, prelude::I2CInterface};
+use ssd1306::{Ssd1306Async, mode::BufferedGraphicsModeAsync, size::DisplaySizeAsync};
 
-impl<T: ssd1306::prelude::DisplaySize> OriginDimensions for Ssd1306Display<T> {
+impl<T: DisplaySizeAsync, DI> OriginDimensions for Ssd1306Display<T, DI> where DI: AsyncWriteOnlyDataCommand {
     fn size(&self) -> Size {
         self.display.size()
     }
 }
 
-impl<T: ssd1306::prelude::DisplaySize> DrawTarget for Ssd1306Display<T> {
+impl<T: DisplaySizeAsync, DI> DrawTarget for Ssd1306Display<T, DI> where DI: AsyncWriteOnlyDataCommand {
     type Color = BinaryColor;
     type Error = String;
 
@@ -37,7 +38,7 @@ impl<T: ssd1306::prelude::DisplaySize> DrawTarget for Ssd1306Display<T> {
 ///     ).into_buffered_graphics_mode()
 /// }
 /// ```
-pub struct Ssd1306Display<T: ssd1306::prelude::DisplaySize> {
+pub struct Ssd1306Display<T: DisplaySizeAsync, DI> {
     /// The display
     ///
     /// # Example
@@ -48,13 +49,13 @@ pub struct Ssd1306Display<T: ssd1306::prelude::DisplaySize> {
     ///     DisplayRotation::Rotate0
     /// ).into_buffered_graphics_mode()
     /// ```
-    pub display: Ssd1306<I2CInterface<I2cdev>, T, ssd1306::mode::BufferedGraphicsMode<T>>,
+    pub display: Ssd1306Async<DI, T, BufferedGraphicsModeAsync<T>>
 }
 
-impl<T: ssd1306::prelude::DisplaySize> DisplayDevice for Ssd1306Display<T> {
+impl<T: DisplaySizeAsync, DI> DisplayDevice for Ssd1306Display<T, DI> where DI: AsyncWriteOnlyDataCommand {
     type Error = String;
-    fn flush(&mut self) -> Result<(), Self::Error> {
-        self.display.flush().map_err(|e| format!("{:?}", e))
+    async fn flush(&mut self) -> Result<(), Self::Error> {
+        self.display.flush().await.map_err(|e| format!("{:?}", e))
     }
 
     fn is_monochrome(&self) -> bool {

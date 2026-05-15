@@ -1,4 +1,5 @@
 use crate::DisplayDevice;
+use alloc::{format, string::String};
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::{OriginDimensions, Size},
@@ -36,7 +37,7 @@ pub struct Mock {
 
 impl DisplayDevice for Mock {
     type Error = String;
-    fn flush(&mut self) -> Result<(), Self::Error> {
+    async fn flush(&mut self) -> Result<(), Self::Error> {
         // We don't need that
         Ok(())
     }

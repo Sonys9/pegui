@@ -1,4 +1,6 @@
 use crate::{Command, Display, Object, Text, errors::Error};
+use alloc::{format, string::{String, ToString}};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex};
 use embedded_graphics::{
     geometry::Point,
     mono_font::MonoTextStyle,
@@ -6,8 +8,8 @@ use embedded_graphics::{
     primitives::{PrimitiveStyle, Rectangle, Styled},
     text::Alignment,
 };
-use std::collections::HashMap;
-use tokio::sync::{mpsc::Sender, oneshot};
+use flume::Sender;
+use hashbrown::HashMap;
 
 /// UI struct, used to draw objects
 pub struct Ui {
@@ -46,11 +48,8 @@ impl Ui {
     /// ```
     pub async fn text(&mut self, text: Text) -> Result<(), Error> {
         self.tx
-            .send(Command::DrawObject(Object::Text(text)))
-            .await
-            .map_err(|e| {
-                Error::SendError(format!("Failed to send the text to other thread: {}", e))
-            })?;
+            .send_async(Command::DrawObject(Object::Text(text)))
+            .await;
         Ok(())
     }
 
@@ -69,16 +68,13 @@ impl Ui {
             )));
         };
         self.tx
-            .send(Command::DrawObject(Object::Text(Text {
+            .send_async(Command::DrawObject(Object::Text(Text {
                 text,
                 position,
                 alignment: Alignment::Left,
                 font,
             })))
-            .await
-            .map_err(|e| {
-                Error::SendError(format!("Failed to send the text to other thread: {}", e))
-            })?;
+            .await;
         Ok(())
     }
 
@@ -102,14 +98,8 @@ impl Ui {
         rectangle: Styled<Rectangle, PrimitiveStyle<BinaryColor>>,
     ) -> Result<(), Error> {
         self.tx
-            .send(Command::DrawObject(Object::Rectangle(rectangle)))
-            .await
-            .map_err(|e| {
-                Error::SendError(format!(
-                    "Failed to send the rectangle to other thread: {}",
-                    e
-                ))
-            })?;
+            .send_async(Command::DrawObject(Object::Rectangle(rectangle)))
+            .await;
         Ok(())
     }
 
@@ -119,11 +109,8 @@ impl Ui {
     pub async fn affected_area(&mut self) -> Result<Rectangle, Error> {
         let (channel_tx, channel_rx) = oneshot::channel::<Option<Rectangle>>();
         self.tx
-            .send(Command::GetAffectedArea(channel_tx))
-            .await
-            .map_err(|e| {
-                Error::SendError(format!("Failed to send the command to other thread: {}", e))
-            })?;
+            .send_async(Command::GetAffectedArea(channel_tx))
+            .await;
         match channel_rx.await.map_err(|e| {
             Error::ReceiveError(format!("Failed to receive the affected area: {}", e))
         })? {

@@ -1,4 +1,4 @@
-use rppal::gpio::InputPin;
+use alloc::vec::Vec;
 
 /// Button with a tag
 pub struct ButtonTag {
@@ -50,7 +50,7 @@ impl Buttons {
     /// Copies the structure
     pub fn copy(&self) -> Self {
         Self {
-            buttons: self.buttons.to_vec(),
+            buttons: self.buttons.clone(),
         }
     }
 
